@@ -1,0 +1,15 @@
+# Python/Django
+__pycache__/
+*.py[cod]
+env/
+static/
+media/
+.env
+dump.rdb
+
+# Misc.
+.DS_Store
+.idea
+*.swp
+
+\.vscode/settings\.json

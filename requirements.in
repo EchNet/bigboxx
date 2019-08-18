@@ -1,0 +1,39 @@
+# Use this file to manage main dependencies
+# Run the following  to generate final requirements.
+# pip freeze | grep -v "pkg-resources" > requirements.txt
+# Don't edit requirements.txt directly.
+
+Django
+boto3
+celery[redis]
+celery-redbeat
+django-celery-email
+django-cors-headers
+django-extensions
+django-hijack
+django-import-export
+django-localflavor
+django-object-actions
+django-phonenumber-field
+django-rest-swagger
+django-storages
+django-widget-tweaks
+djangorestframework
+djangorestframework-jwt
+dj-database-url
+fabric3
+google-api-python-client
+gunicorn
+html2text
+ipdb
+ipython
+phonenumberslite
+pillow
+psycopg2-binary
+python-decouple
+python-dotenv
+python-jose
+raven
+sqlparse
+unicodecsv
+whitenoise
