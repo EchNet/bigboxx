@@ -9,10 +9,10 @@ from django.urls import include, path
 import bigboxx.views as bigboxx_views
 
 urlpatterns = [
-    path("", bigboxx_views.HomeView.as_view(), name="home"),
-    path("api/", include("api.urls")),
-    path("admin/", admin.site.urls),
-    path("hijack/", include("hijack.urls", namespace="hijack")),
+    #path("", bigboxx_views.HomeView.as_view(), name="home"),
+    #path("api/1.0/", include("api.urls")),
+    #path("admin/", admin.site.urls),
+    #path("hijack/", include("hijack.urls", namespace="hijack")),
 ]
 
 if settings.SERVE_MEDIA:

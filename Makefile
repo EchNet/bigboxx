@@ -11,8 +11,13 @@ default: test
 init:
 	$(PIP) install -r requirements.txt
 
-test:
+test: test_bigboxx test_api
+
+test_bigboxx:
 	$(PYTHON) ./manage.py test ./bigboxx/tests
+
+test_api:
+	$(PYTHON) ./manage.py test ./apps/api/tests
 
 collectstatic:
 	rm -rf ./static

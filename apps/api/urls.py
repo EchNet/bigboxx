@@ -3,10 +3,16 @@ from django.views.generic import RedirectView
 from rest_framework_jwt.views import refresh_jwt_token, verify_jwt_token
 from rest_framework_swagger.views import get_swagger_view
 
+import api.views as api_views
+
 urlpatterns = [
-    url(r'^1.0/token-refresh/', refresh_jwt_token),
-    url(r'^1.0/token-verify/', verify_jwt_token),
-    url(r'^1.0/?$', RedirectView.as_view(url='docs')),
-    url(r'^1.0/docs/?$', get_swagger_view(title='API Doc')),
+    # Methods
+    url(r'^boxdef/validate', api_views.ValidateBoxDefinition.as_view()),
+    # Authentication
+    url(r'^token-refresh/', refresh_jwt_token),
+    url(r'^token-verify/', verify_jwt_token),
     url(r'^api-auth/', include("rest_framework.urls", namespace="rest_framework")),
+    # Documentation
+    url(r'^?$', RedirectView.as_view(url='docs')),
+    url(r'^docs/?$', get_swagger_view(title='API Doc')),
 ]
