@@ -13,6 +13,5 @@ urlpatterns = [
     url(r'^token-verify/', verify_jwt_token),
     url(r'^api-auth/', include("rest_framework.urls", namespace="rest_framework")),
     # Documentation
-    url(r'^?$', RedirectView.as_view(url='docs')),
     url(r'^docs/?$', get_swagger_view(title='API Doc')),
 ]

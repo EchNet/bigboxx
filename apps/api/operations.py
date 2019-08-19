@@ -48,8 +48,8 @@ class BoxDefinitionValidator(ItemValidator):
   def _run_validation(self):
     self._expect(TITLE_FIELD_NAME).to_be_a_valid_title().keep()
     self._allow(DESCRIPTION_FIELD_NAME).to_be_a_valid_description().keep()
-    self._expect(AMOUNT_IN_FIELD_NAME).to_be_positive_integer().keep()
-    self._expect(LOG2_SIZE_FIELD_NAME).to_be_valid_log2_size().keep()
+    self._allow(AMOUNT_IN_FIELD_NAME).to_be_positive_integer().keep()
+    self._allow(LOG2_SIZE_FIELD_NAME).to_be_valid_log2_size().keep()
     self._expect(OUTCOMES_FIELD_NAME).to_be_valid_outcomes().keep()
 
 
@@ -71,7 +71,7 @@ class BoxDefinitionOperations:
     self.input_fields = kwargs
 
   def validate(self):
-    self._validate(False)
+    return self._validate(False)
 
   def build(self):
     return self._validate(True)
@@ -88,6 +88,7 @@ class BoxDefinitionOperations:
       return box_definition
     else:
       box_definition.full_clean()
+    return box_definition
 
   def _validate_inputs(self):
     return BoxDefinitionValidator(self.input_fields).run().valid_fields

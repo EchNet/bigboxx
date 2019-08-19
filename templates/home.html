@@ -1,1 +1,75 @@
-<h1>This is BigBoxx</h1>
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>BigBoxx</title>
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+</head>
+
+<body>
+  <h1>This is BigBoxx</h1>
+
+  <p>Paste your JSON here:</p>
+
+  <textarea id="box_definition_input" rows="40" cols="80">
+    {
+      "title": "Test Box",
+      "description": "This is a test.",
+      "log2size": 12,
+      "outcomes": [{
+        "title": "Jackpot",
+        "probability": 1,
+        "amount_out": 10000
+      },{
+        "title": "3 cherries in a row",
+        "probability": 1,
+        "amount_out": 1000
+      },{
+        "title": "3 oranges in a row",
+        "probability": 100,
+        "amount_out": 500
+      },{
+        "title": "3 blueberries in a row",
+        "probability": 500,
+        "amount_out": 200
+      },{
+        "title": "3 lemons in a row",
+        "probability": 1000,
+        "amount_out": 100
+      }]
+    }
+  </textarea>
+
+  <p><button type="submit">Submit</button></p>
+
+  <p>STATUS: <span id="status_bar"></span></p>
+
+  <script type="text/javascript">
+    $(document).ready(function() {
+      $("button[type=submit]").on("click", function() {
+        $("#status_bar").text("WORKING...");
+        var json = $("textarea").val();
+        $.ajax({
+          type: "POST",
+          url: "/api/1.0/boxdef/validate",
+          data: json,
+          contentType: "application/json"
+        })
+        .done(function(results) {
+          $("#status_bar").text(JSON.stringify(results));
+        })
+        .fail(function(error) {
+          $("#status_bar").text(JSON.stringify(error));
+        });
+      });
+    });
+  </script>
+</body>
+</html>
