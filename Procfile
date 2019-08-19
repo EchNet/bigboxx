@@ -1,3 +1,3 @@
-web: gunicorn bigboxx.wsgi --max-requests 1200
+web: python manage.py runserver 0.0.0.0:$PORT
 celery: celery --app=bigboxx worker --beat --loglevel=debug
 release: python manage.py migrate --no-input

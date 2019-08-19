@@ -25,10 +25,7 @@ ENV = config("ENV")
 ENV_COLOR = config("ENV_COLOR")
 ALLOWED_HOSTS = ["*"]  # TODO: Change to allowed domains
 
-if DEBUG:
-  DATA_UPLOAD_MAX_MEMORY_SIZE = 12 * 1024 * 1024  # Uploads come to this server in dev mode.
-else:
-  DATA_UPLOAD_MAX_MEMORY_SIZE = 512 * 1024  # Uploads go directly to S3.  This limit can be low.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 512 * 1024  # Uploads go directly to S3.  This limit can be low.
 
 USE_X_FORWARDED_PORT = True
 
@@ -58,7 +55,6 @@ INSTALLED_APPS = (
     "rest_framework",
     "rest_framework_swagger",
     'import_export',
-    "social_django",
 
     # custom apps
     "api",
@@ -153,7 +149,7 @@ LOGGING = {
 }
 
 # SSL
-SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", cast=bool)
+SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", cast=bool, default=True)
 
 # Static file
 SERVE_MEDIA = DEBUG
@@ -215,26 +211,6 @@ CELERY_BEAT_SCHEDULE = {
 # hijack
 HIJACK_LOGIN_REDIRECT_URL = "/"
 HIJACK_LOGOUT_REDIRECT_URL = "/admin/"
-
-# memcached
-MEMCACHEDCLOUD_SERVERS = config("MEMCACHEDCLOUD_SERVERS")
-if MEMCACHEDCLOUD_SERVERS:
-  MEMCACHEDCLOUD_SERVERS = MEMCACHEDCLOUD_SERVERS.split(",")
-MEMCACHEDCLOUD_PASSWORD = config("MEMCACHEDCLOUD_PASSWORD")
-MEMCACHEDCLOUD_USERNAME = config("MEMCACHEDCLOUD_USERNAME")
-
-# caching
-if MEMCACHEDCLOUD_SERVERS:
-  CACHES = {
-      "default": {
-          "BACKEND": "django.core.cache.backends.memcached.MemcachedCache",
-          "LOCATION": MEMCACHEDCLOUD_SERVERS,
-          "OPTIONS": {
-              "username": MEMCACHEDCLOUD_PASSWORD,
-              "password": MEMCACHEDCLOUD_USERNAME,
-          }
-      }
-  }
 
 # phonenumber_field
 PHONENUMBER_DEFAULT_REGION = "US"
