@@ -92,6 +92,47 @@ class BoxDefinition(models.Model):
       verbose_name=_("amount in"),
   )
 
+  @property
+  def size(self):
+    return 2**self.log2size
+
+  @property
+  def hit_rate(self):
+    return sum(outcome.hit_rate for outcome in self.outcomes)
+
+  @property
+  def average_return(self):
+    return sum(outcome.average_return for outcome in self.outcomes)
+
+  def __setattr__(self, name, value):
+    if name == "outcomes":
+      for outcome in value:
+        outcome.box_definition = self
+      if self.pk:
+        for outcome in value:
+          outcome.save()
+      else:
+        self._pending_outcomes = value
+    else:
+      super().__setattr__(name, value)
+
+  def __getattr__(self, name):
+    if name == "outcomes":
+      if self.pk:
+        return list(self.saved_outcomes.all())
+      else:
+        return self._pending_outcomes or []
+    else:
+      return super().__getattr__(name)
+
+  def save(self, *args, **kwargs):
+    is_new = not self.pk
+    super().save(*args, **kwargs)
+    if is_new and self._pending_outcomes:
+      for outcome in self._pending_outcomes:
+        outcome.save()
+      self._pending_outcomes = None
+
 
 class Outcome(models.Model):
   # Reference the parent box definition.
@@ -100,7 +141,7 @@ class Outcome(models.Model):
       null=False,
       to=BoxDefinition,
       on_delete=models.CASCADE,
-      related_name="outcomes",
+      related_name="saved_outcomes",
   )
 
   # User-defined title string.
@@ -136,3 +177,11 @@ class Outcome(models.Model):
       default=0,
       verbose_name=_("amount out"),
   )
+
+  @property
+  def hit_rate(self):
+    return self.probability / self.box_definition.size
+
+  @property
+  def average_return(self):
+    return self.hit_rate * self.amount_out / self.box_definition.amount_in

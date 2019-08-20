@@ -22,47 +22,57 @@ MIN_OUTCOMES = 1
 MAX_OUTCOMES = 1000
 
 
-class BoxDefinitionFieldValidator(FieldValidator):
-  def to_be_a_valid_title(self):
-    return self.to_be_truthy().to_be_string().length_in_range(1, MAX_TITLE_LENGTH)
+class BaseItemValidator(ItemValidator):
+  def validate_title(self):
+    self._expect(TITLE_FIELD_NAME) \
+      .to_be_truthy() \
+      .to_be_string() \
+      .length_in_range(1, MAX_TITLE_LENGTH).keep()
 
-  def to_be_a_valid_description(self):
-    return self.to_be_string().length_in_range(0, MAX_DESCRIPTION_LENGTH)
+  def validate_description(self):
+    self._allow(DESCRIPTION_FIELD_NAME) \
+      .to_be_string() \
+      .length_in_range(0, MAX_DESCRIPTION_LENGTH).keep()
 
-  def to_be_valid_log2_size(self):
-    return self.to_be_integer().in_range(MIN_LOG2_SIZE, MAX_LOG2_SIZE)
 
-  def to_be_valid_outcomes(self):
+class BoxDefinitionValidator(BaseItemValidator):
+  def validate_size(self):
+    self._allow(LOG2_SIZE_FIELD_NAME) \
+      .to_be_integer() \
+      .in_range(MIN_LOG2_SIZE, MAX_LOG2_SIZE).keep()
+
+  def validate_amount_in(self):
+    self._allow(AMOUNT_IN_FIELD_NAME).to_be_positive_integer().keep()
+
+  def validate_outcomes(self):
     def buildOutcome(dict):
       valid_fields = OutcomeValidator(dict).run().valid_fields
       return Outcome(**valid_fields)
 
-    return self.to_be_array_of(buildOutcome).length_in_range(MIN_OUTCOMES, MAX_OUTCOMES)
-
-
-class BoxDefinitionValidator(ItemValidator):
-  @property
-  def _field_validator_class(self):
-    return BoxDefinitionFieldValidator
+    self._expect(OUTCOMES_FIELD_NAME) \
+      .to_be_array_of(buildOutcome) \
+      .length_in_range(MIN_OUTCOMES, MAX_OUTCOMES).keep()
 
   def _run_validation(self):
-    self._expect(TITLE_FIELD_NAME).to_be_a_valid_title().keep()
-    self._allow(DESCRIPTION_FIELD_NAME).to_be_a_valid_description().keep()
-    self._allow(AMOUNT_IN_FIELD_NAME).to_be_positive_integer().keep()
-    self._allow(LOG2_SIZE_FIELD_NAME).to_be_valid_log2_size().keep()
-    self._expect(OUTCOMES_FIELD_NAME).to_be_valid_outcomes().keep()
+    self.validate_title()
+    self.validate_description()
+    self.validate_size()
+    self.validate_amount_in()
+    self.validate_outcomes()
 
 
-class OutcomeValidator(ItemValidator):
-  @property
-  def _field_validator_class(self):
-    return BoxDefinitionFieldValidator
-
-  def _run_validation(self):
-    self._expect(TITLE_FIELD_NAME).to_be_a_valid_title().keep()
-    self._allow(DESCRIPTION_FIELD_NAME).to_be_a_valid_description().keep()
+class OutcomeValidator(BaseItemValidator):
+  def validate_probability(self):
     self._expect(PROBABILITY_FIELD_NAME).to_be_positive_integer().keep()
+
+  def validate_amount_out(self):
     self._allow(AMOUNT_OUT_FIELD_NAME).to_be_positive_integer().keep()
+
+  def _run_validation(self):
+    self.validate_title()
+    self.validate_description()
+    self.validate_probability()
+    self.validate_amount_out()
 
 
 class BoxDefinitionOperations:
@@ -80,14 +90,10 @@ class BoxDefinitionOperations:
     valid_fields = self._validate_inputs()
     outcomes = valid_fields.pop(OUTCOMES_FIELD_NAME)
     box_definition = BoxDefinition(subscriber=self.subscriber, **valid_fields)
+    box_definition.full_clean()
     if do_build:
       box_definition.save()
-      for outcome in outcomes:
-        outcome.box_definition = box_definition
-        outcome.save()
-      return box_definition
-    else:
-      box_definition.full_clean()
+    box_definition.outcomes = outcomes
     return box_definition
 
   def _validate_inputs(self):

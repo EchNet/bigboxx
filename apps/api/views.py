@@ -41,7 +41,7 @@ class ValidateBoxDefinition(views.APIView):
           "errors": ve.args,
       }
       response_status = status.HTTP_400_BAD_REQUEST
-    except Error as e:
+    except ValueError as e:
       response_payload = {"details": str(e)}
       response_status = status.HTTP_500_INTERNAL_SERVER_ERROR
 

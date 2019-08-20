@@ -4,53 +4,6 @@ from django.core.validators import ValidationError
 from django.utils import timezone
 
 
-class ItemValidator:
-  """
-    A validation utility.
-  """
-
-  def __init__(self, input_fields):
-    self.input_fields = input_fields
-    self.recognized_field_names = []
-    self.valid_fields = {}
-    self.errors = {}
-
-  def run(self):
-    self._run_validation()
-    self._check_extra_fields()
-    self._check_errors()
-    return self
-
-  def _expect(self, field_name, dflt=None):
-    self.recognized_field_names.append(field_name)
-    return self._field_validator_class(self, field_name, dflt)
-
-  def _allow(self, field_name):
-    if self.input_fields.get(field_name, None) is not None:
-      return self._expect(field_name, None)
-    else:
-      return _DisabledFieldValidator()
-
-  def _check_extra_fields(self):
-    fields = {**self.input_fields}
-    for f in self.recognized_field_names:
-      fields.pop(f, None)
-    for f in fields.keys():
-      self.errors[f] = ["unrecognized field"]
-
-  def _check_errors(self):
-    if self.errors:
-      raise ValidationError(self.errors)
-
-  # Must be subclassed.
-  def _run_validation(self):
-    raise ValueError("must be subclassed")
-
-  # Default implementation.  May be subclassed.
-  def _field_validator_class(self):
-    return FieldValidator
-
-
 class FieldValidator:
   """
     A field validation utility, subordinate to ItemValidator.
@@ -151,3 +104,47 @@ class _DisabledFieldValidator:
       return self
 
     return func
+
+
+class ItemValidator:
+  """
+    A validation utility.
+  """
+  _field_validator_class = FieldValidator
+
+  def __init__(self, input_fields):
+    self.input_fields = input_fields
+    self.recognized_field_names = []
+    self.valid_fields = {}
+    self.errors = {}
+
+  def run(self):
+    self._run_validation()
+    self._check_extra_fields()
+    self._check_errors()
+    return self
+
+  def _expect(self, field_name, dflt=None):
+    self.recognized_field_names.append(field_name)
+    return self._field_validator_class(self, field_name, dflt)
+
+  def _allow(self, field_name):
+    if self.input_fields.get(field_name, None) is not None:
+      return self._expect(field_name, None)
+    else:
+      return _DisabledFieldValidator()
+
+  def _check_extra_fields(self):
+    fields = {**self.input_fields}
+    for f in self.recognized_field_names:
+      fields.pop(f, None)
+    for f in fields.keys():
+      self.errors[f] = ["unrecognized field"]
+
+  def _check_errors(self):
+    if self.errors:
+      raise ValidationError(self.errors)
+
+  # Must be subclassed.
+  def _run_validation(self):
+    raise ValueError("must be subclassed")

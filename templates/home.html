@@ -22,7 +22,7 @@
     {
       "title": "Test Box",
       "description": "This is a test.",
-      "log2size": 12,
+      "log2size": 18,
       "outcomes": [{
         "title": "Jackpot",
         "probability": 1,
@@ -66,7 +66,7 @@
           $("#status_bar").text(JSON.stringify(results));
         })
         .fail(function(error) {
-          $("#status_bar").text(JSON.stringify(error));
+          $("#status_bar").text(JSON.stringify(error.responseText));
         });
       });
     });
