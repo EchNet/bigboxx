@@ -7,7 +7,8 @@ import api.views as api_views
 
 urlpatterns = [
     # Methods
-    url(r'^boxdef/validate', api_views.ValidateBoxDefinition.as_view()),
+    url(r'^boxx/?$', api_views.BoxDefinitionsView.as_view()),
+    url(r'^boxx/validate/?$', api_views.ValidateBoxDefinition.as_view()),
     # Authentication
     url(r'^token-refresh/', refresh_jwt_token),
     url(r'^token-verify/', verify_jwt_token),

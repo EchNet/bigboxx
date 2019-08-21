@@ -44,8 +44,6 @@ INSTALLED_APPS = (
     "django_object_actions",
     "djcelery_email",
     "gunicorn",
-    "hijack",
-    "compat",  # for hijack
     "localflavor",
     "phonenumber_field",
     "raven.contrib.django.raven_compat",
@@ -207,10 +205,6 @@ CELERY_BEAT_SCHEDULE = {
         }
     },
 }
-
-# hijack
-HIJACK_LOGIN_REDIRECT_URL = "/"
-HIJACK_LOGOUT_REDIRECT_URL = "/admin/"
 
 # phonenumber_field
 PHONENUMBER_DEFAULT_REGION = "US"

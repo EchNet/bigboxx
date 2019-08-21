@@ -5,16 +5,6 @@ from rest_framework import serializers
 from api.models import (ApiKey, BoxDefinition, Outcome)
 
 
-# ApiKey
-class ApiKeySerializer(serializers.ModelSerializer):
-  class Meta:
-    model = ApiKey
-    fields = (
-        "subscriber_name",
-        "api_key",
-    )
-
-
 # Outcome
 class OutcomeSerializer(serializers.ModelSerializer):
   class Meta:
@@ -34,6 +24,7 @@ class BoxDefinitionSerializer(serializers.ModelSerializer):
   class Meta:
     model = BoxDefinition
     fields = (
+        "id",
         "title",
         "description",
         "log2size",
@@ -45,3 +36,12 @@ class BoxDefinitionSerializer(serializers.ModelSerializer):
     )
 
   outcomes = OutcomeSerializer(many=True)
+
+
+class BoxDefinitionListingSerializer(serializers.ModelSerializer):
+  class Meta:
+    model = BoxDefinition
+    fields = (
+        "id",
+        "title",
+    )

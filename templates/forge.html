@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block header %}
+  <script type="text/javascript">
+    function startServiceWait() {
+    }
+
+    function endServiceWait() {
+    }
+
+    function showServiceError(error) {
+      if (error.responseText) {
+        console.log(error.responseText);
+      }
+    }
+
+    function invokeService(method, path, data, onSuccess) {
+      startServiceWait();
+      $.ajax({
+        type: method,
+        url: "/api/1.0/" + path,
+        data: data,
+        contentType: "application/json",
+        headers: { "x-api-key": $("#apiKeyInput").val() }
+      })
+      .done(onSuccess)
+      .fail(showServiceError)
+      .always(endServiceWait);
+    }
+
+    /*********/
+
+    function apiKeyChanged() {
+      $("#dependsOnApiKey").hide()
+    }
+
+    function apiKeySubmitted() {
+      invokeService("GET", "boxx/", {}, function(results) {
+        alert(JSON.stringify(results));
+      });
+    }
+
+    function boxDefinitionSubmitted() {
+      invokeService("POST", "boxx/validate", $("#boxDefinitionInput").val(), function(results) {
+        $("#status_bar").text(JSON.stringify(results));
+      });
+    }
+
+    /*********/
+
+    $(document).ready(function() {
+      $("#apiKeyInput").val("$$$$$$$$.TESTER.$$$$$$$$");
+      apiKeyChanged();
+    });
+  </script>
+{% endblock header %}
+
+{% block content %}
+  <p>
+    Your API key:<br/>
+    <input id="apiKeyInput" type="text" onchange="apiKeyChanged()" style="width: 300px"><button type="button" onclick="apiKeySubmitted()">Enter</button>
+  </p>
+
+  <div id="dependsOnApiKey" style="display: none">
+    <p>Paste your JSON here:</p>
+
+    <textarea id="boxDefinitionInput" rows="40" cols="80">
+      {
+        "title": "Test Box",
+        "description": "This is a test.",
+        "log2size": 18,
+        "outcomes": [{
+          "title": "Jackpot",
+          "probability": 1,
+          "amount_out": 10000
+        },{
+          "title": "3 cherries in a row",
+          "probability": 1,
+          "amount_out": 1000
+        },{
+          "title": "3 oranges in a row",
+          "probability": 100,
+          "amount_out": 500
+        },{
+          "title": "3 blueberries in a row",
+          "probability": 500,
+          "amount_out": 200
+        },{
+          "title": "3 lemons in a row",
+          "probability": 1000,
+          "amount_out": 100
+        }]
+      }
+    </textarea>
+
+    <p><button type="submit">Submit</button></p>
+
+    <p>STATUS: <span id="status_bar"></span></p>
+  </div>
+{% endblock content %}

@@ -5,14 +5,16 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.conf import settings
 from django.urls import include, path
+from django.views.generic import TemplateView
 
 import bigboxx.views as bigboxx_views
 
 urlpatterns = [
     path("", bigboxx_views.HomeView.as_view(), name="home"),
+    path("overview", TemplateView.as_view(template_name="overview.html"), name="overview"),
+    path("forge", TemplateView.as_view(template_name="forge.html"), name="forge"),
     path("api/1.0/", include("api.urls")),
     path("admin/", admin.site.urls),
-    path("hijack/", include("hijack.urls", namespace="hijack")),
 ]
 
 if settings.SERVE_MEDIA:

@@ -1,75 +1,10 @@
-<!doctype html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <meta name="description" content="">
-  <meta name="author" content="">
-  <meta name="theme-color" content="#ffffff">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="mobile-web-app-capable" content="yes">
-  <title>BigBoxx</title>
-  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-</head>
+{% block content %}
+  <p>BigBoxx is a randomization API service.</p>
+  <p><i>To obtain an API key, please email <a href="mailto:ech@ech.net">ech@ech.net</a></i>
 
-<body>
-  <h1>This is BigBoxx</h1>
-
-  <p>Paste your JSON here:</p>
-
-  <textarea id="box_definition_input" rows="40" cols="80">
-    {
-      "title": "Test Box",
-      "description": "This is a test.",
-      "log2size": 18,
-      "outcomes": [{
-        "title": "Jackpot",
-        "probability": 1,
-        "amount_out": 10000
-      },{
-        "title": "3 cherries in a row",
-        "probability": 1,
-        "amount_out": 1000
-      },{
-        "title": "3 oranges in a row",
-        "probability": 100,
-        "amount_out": 500
-      },{
-        "title": "3 blueberries in a row",
-        "probability": 500,
-        "amount_out": 200
-      },{
-        "title": "3 lemons in a row",
-        "probability": 1000,
-        "amount_out": 100
-      }]
-    }
-  </textarea>
-
-  <p><button type="submit">Submit</button></p>
-
-  <p>STATUS: <span id="status_bar"></span></p>
-
-  <script type="text/javascript">
-    $(document).ready(function() {
-      $("button[type=submit]").on("click", function() {
-        $("#status_bar").text("WORKING...");
-        var json = $("textarea").val();
-        $.ajax({
-          type: "POST",
-          url: "/api/1.0/boxdef/validate",
-          data: json,
-          contentType: "application/json"
-        })
-        .done(function(results) {
-          $("#status_bar").text(JSON.stringify(results));
-        })
-        .fail(function(error) {
-          $("#status_bar").text(JSON.stringify(error.responseText));
-        });
-      });
-    });
-  </script>
-</body>
-</html>
+  <li><a href="overview">Overview</a></li>
+  <li><a href="api/1.0/docs">API documentation</a></li>
+  <li><a href="forge">Data admin</a></li>
+{% endblock %}

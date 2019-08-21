@@ -10,7 +10,6 @@ celery-redbeat
 django-celery-email
 django-cors-headers
 django-extensions
-django-hijack
 django-import-export
 django-localflavor
 django-object-actions

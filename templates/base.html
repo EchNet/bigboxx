@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>BigBoxx</title>
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700');
+    body {
+      position: relative;
+      padding: 0;
+      margin: 0;
+      font-family: 'Open Sans', sans-serif;
+    }
+    h1 {
+      background-color: #1a405e;
+      width: 100%;
+      margin: 0;
+      padding: 12px;
+      color: white;
+      font-size: 28px;
+      cursor: pointer;
+    }
+    #content {
+      margin-top: 24px;
+      padding: 12px;
+    }
+    .footer {
+      padding: 0 12px;
+    }
+    p {
+      margin: 12px 0;
+      padding: 0;
+    }
+    .push-top { margin-top: 20px; }
+    .push-bottom { margin-bottom: 20px; }
+    .push-y { margin-top: 20px; margin-bottom: 20px; }
+    .bold { font-weight: bold; }
+    .text-right { text-align: right; }
+    .text-small { font-size: .65rem; }
+    .text-strikethru { text-decoration: line-through; }
+    .text-warning { color: red!important; }
+    .muted { color: #9e9e9e; }
+  </style>
+  {% block header %}
+  {% endblock header %}
+</head>
+
+<body>
+  <h1 onclick="window.location='/'">BigBoxx</h1>
+
+  <div id="content">
+    {% block content %}
+    {% endblock content %}
+  </div>
+
+  <hr>
+  <div class="footer">
+    <div class="col-sm-12 push-bottom">
+      <p class="text-small muted push-bottom">
+        <a href="http://ech.net" target="_home">©2019 Ech.net.</a>
+        <a href="static/terms.html" target="_terms">Terms of use.</a>
+      </p>
+    </div>
+  </div>
+</body>
+{% block footer %}
+{% endblock footer %}
+</html>
