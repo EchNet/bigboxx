@@ -23,8 +23,9 @@ class BoxDefinitionsView(generics.CreateAPIView):
 
   def create(self, request):
     try:
-      logger.info("BoxDefinitionsView CREATE")
       subscriber = request.subscriber
+      input = request.data
+      logger.info(f"BoxDefinitionsView create subscriber={subscriber} input={input}")
       data = BoxDefinitionOperations(subscriber, **input).build()
       response_payload = {"data": BoxDefinitionSerializer(data).data}
       response_status = status.HTTP_201_CREATED
@@ -42,8 +43,8 @@ class BoxDefinitionsView(generics.CreateAPIView):
 
   def get(self, request):
     try:
-      logger.info("BoxDefinitionsView GET")
       subscriber = request.subscriber
+      logger.info(f"BoxDefinitionsView list subscriber={subscriber}")
       data = BoxDefinition.objects.filter(subscriber=subscriber).all()
       response_payload = {"data": BoxDefinitionListingSerializer(data, many=True).data}
       response_status = status.HTTP_201_CREATED

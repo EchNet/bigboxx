@@ -12,6 +12,7 @@ import bigboxx.views as bigboxx_views
 urlpatterns = [
     path("", bigboxx_views.HomeView.as_view(), name="home"),
     path("overview", TemplateView.as_view(template_name="overview.html"), name="overview"),
+    path("docs", TemplateView.as_view(template_name="docs.html"), name="docs"),
     path("forge", TemplateView.as_view(template_name="forge.html"), name="forge"),
     path("api/1.0/", include("api.urls")),
     path("admin/", admin.site.urls),

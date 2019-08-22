@@ -41,4 +41,4 @@ class OperationsTestCase(TestCase):
     self.assertEqual(box_definition.description, "Description")
     self.assertEqual(box_definition.log2size, 20)
     self.assertEqual(box_definition.amount_in, 1)
-    self.assertEqual(box_definition.outcomes.count(), 2)
+    self.assertEqual(len(box_definition.outcomes), 2)

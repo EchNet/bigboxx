@@ -1,5 +1,139 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <p>Coming soon...</p>
-{% endblock %}
+  <h2>API Keys</h2>
+  <p>
+    All API calls must include a custom HTTP header containing an API key.  The name of the header
+    is <code>X-Api-Key</code>.  The value is a string of ASCII characters.  To obtain an API
+    key, please email <a href="mailto:ech@ech.net">ech@ech.net</a>.
+  </p>
+  <h2>API URLs</h2>
+  <p>
+    All API URLs are based on <code>https://bigboxx.herokuapp.com/api/1.0/</code>.  All paths
+    that appear in the API reference below are relative to this base URL.
+  </p>
+  <h2>Content Types</h2>
+  <p>
+    All request and response bodies are JSON.  The client must add a <code>Content-type: 
+    application/json</code> header to all POST and PUT request.
+  </p>
+  <h2>API Reference</h2>
+  <div style="width:100%">
+    <table border>
+      <tr>
+        <th>Method</th>
+        <th>Path</th>
+        <th>Description</th>
+        <th>Sample JSON</th>
+      </tr>
+      <tr>
+        <td>GET</td>
+        <td>boxx</td>
+        <td>List IDs and titles of all boxx definitions.</td>
+        <td>Response: <pre>
+{ "data": [
+  { "id": 1, "title": "First Boxx" },
+  { "id": 2, "title": "Second Boxx" }
+] }</pre>
+        </td>
+      </tr>
+      <tr>
+        <td>GET</td>
+        <td>boxx/:id:</td>
+        <td>Get details of a particular boxx definition.</td>
+        <td>Response: <pre>
+{ "data": {
+  "id": 2,
+  "title":"Test Box",
+  "description":"This is a test.","
+  log2size":18,
+  "size":262144,
+  "amount_in":1,
+  "hit_rate": 0.00611114501953125,
+  "average_return":0.995635986328125,
+  "outcomes":[{
+    "title":"Jackpot",
+    "probability":1,
+    "amount_out":10000,
+    "hit_rate":3.814697265625e-06,
+    "average_return":0.03814697265625
+  }]
+}</pre>
+        </td>
+      </tr>
+      <tr>
+        <td>POST</td>
+        <td>boxx</td>
+        <td>Validate and create a boxx definition.</td>
+        <td>Request: <pre>
+{
+  "title": "Test Box",
+  "description": "This is a test.",
+  "log2size": 18,
+  "outcomes": [{
+    "title": "Jackpot",
+    "probability": 1,
+    "amount_out": 10000
+  },{
+    "title": "3 cherries in a row",
+    "probability": 1,
+    "amount_out": 1000
+  },{
+    "title": "3 oranges in a row",
+    "probability": 100,
+    "amount_out": 500
+  },{
+    "title": "3 lemons in a row",
+    "probability": 1000,
+    "amount_out": 100
+  }]
+}
+        </td>
+      </tr>
+      <tr>
+        <td>POST</td>
+        <td>boxx/validate</td>
+        <td>Just validate a boxx definition. (As previous,
+          but does not save the boxx defintion.)</td>
+        <td>(Request and response as previous)
+        </td>
+      </tr>
+      <tr>
+        <td>GET</td>
+        <td>boxx/:id:/status</td>
+        <td>Request a boxx definition's status, in particular, whether
+            it is ready for service.</td>
+        <td>Response: <pre>
+{ "data": {
+  "id": 1, "in_service": true
+} } </pre>
+        </td>
+      </tr>
+      <tr>
+        <td>POST</td>
+        <td>boxx/:id:/outcome</td>
+        <td>Find an unconsumed outcome of the given boxx definition,
+          assigned to the given token.
+          If none is found, find an unassigned token and assign it to
+          the given token.  If the consume flag is set, consume the
+          assigned outcome.  Return the assigned outcome.</td>
+        <td>Request: <pre>
+{ "token": "abcDEF123",
+  "consume": false }</pre>
+        Response: <pre>
+{ "data": {
+  "outcome": {
+    "title": "3 Stars",
+    "amount_out": 500
+  }
+} } </pre>
+        </td>
+      </tr>
+    </table>
+  <h2>Error Responses</h2>
+  <p>
+    Valid responses have HTTP status in [200..205].  All other statuses indicate errors.
+    Information about the error may be found in the "details" field of the JSON response
+    body.
+  </div>
+{% endblock content %}

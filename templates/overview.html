@@ -1,5 +1,51 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <p>Coming soon...</p>
+  <h2>What is a boxx?</h2>
+  <p>
+    A boxx is a predetermined sequence of random outcomes.  By pre-generating and analyzing
+    the sequence, the system can ensure that it conforms to constraints set by the client.
+  </p>
+  <p>
+    Outcomes in the boxx may be <strong>assigned</strong>.  Assigning an outcome associates
+    the outcome permanently with a token string provided by the client.  (The tokens are
+    opaque to the BigBoxx service.)  Once assigned, an outcome may not be reassigned; it
+    may only be <strong>consumed</strong>.  Each outcome may be consumed only once.
+  </p>
+  <h2>What does this mean to the game developer?</h2>
+  <p>
+    To put the above into gaming terms, when the user looks ahead at the next results,
+    the gaming client sends an API call that includes the user's ID token to the BigBoxx
+    system.  The system responds by looking for an outcome assigned to the user.  If
+    there is none, the system assigns the next available unassigned outcome to the user.
+    The system sends a return message that includes a description of the outcome.
+  <p>
+  </p>
+    When the user makes a play, the gaming client sends an API call as in the previous
+    case, except with instructions to consume.  The system carries out the same 
+    operation as in the previous case, except that it also consumes the outcome. 
+    Therefore, the next time the user looks ahead or makes a play, they will be 
+    assigned a different outcome.
+  </p>
+  <h2>How are boxxes created?</h2>
+  <p>
+    Boxxes are created on demand by the service, based on <strong>boxx definitions</strong>
+    previously registered through the API.  A boxx definition describes the various
+    outcomes of the boxx, the values and probabilities of each.  Before outcomes can be
+    extracted, the boxx definition must be in service.  Boxx definitions become ready for
+    service some time after they are saved, after the first boxx associated with that boxx
+    definition is generated.  (This is a relatively slow process that should not take place
+    while an end user is waiting for a response.) Once that is complete, the client may begin
+    assigning and consuming outcomes.  As boxxes are depleted, the system generates new ones
+    conforming to the same boxx definition.
+  </p>
+  <p>
+    Once a boxx or a boxx definition is created, it cannot be modified.  New boxx
+    definitions may be created, however, up to the limit guaranteed by the subscriber's
+    service plan.
+  </p>
+  <h2>How do I get started?</h2>
+  <p>
+    The next step is to <a href="docs">read the API documentation.</a>
+  </p>
 {% endblock %}

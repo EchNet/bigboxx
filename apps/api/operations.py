@@ -89,6 +89,7 @@ class BoxDefinitionOperations:
   def _validate(self, do_build):
     valid_fields = self._validate_inputs()
     outcomes = valid_fields.pop(OUTCOMES_FIELD_NAME)
+    logger.debug(str(valid_fields))
     box_definition = BoxDefinition(subscriber=self.subscriber, **valid_fields)
     box_definition.full_clean()
     if do_build:

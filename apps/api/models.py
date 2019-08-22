@@ -49,6 +49,8 @@ class BoxDefinition(models.Model):
   """
     This is a template from which boxes may be generated.
   """
+  _pending_outcomes = None
+
   # Who this box definition belongs to.
   subscriber = models.ForeignKey(
       blank=True,
@@ -116,14 +118,14 @@ class BoxDefinition(models.Model):
     else:
       super().__setattr__(name, value)
 
-  def __getattr__(self, name):
+  def __getattribute__(self, name):
     if name == "outcomes":
       if self.pk:
         return list(self.saved_outcomes.all())
       else:
         return self._pending_outcomes or []
     else:
-      return super().__getattr__(name)
+      return super().__getattribute__(name)
 
   def save(self, *args, **kwargs):
     is_new = not self.pk
