@@ -1,12 +1,18 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
+API_KEY_MAX_LENGTH = 63
+TITLE_MAX_LENGTH = 63
+NAME_MAX_LENGTH = 63
+DESCRIPTION_MAX_LENGTH = 255
+USER_TOKEN_MAX_LENGTH = 31
+
 
 class Subscriber(models.Model):
   # Name of subscriber.
   name = models.CharField(
       blank=False,
-      max_length=63,
+      max_length=NAME_MAX_LENGTH,
       null=False,
       db_index=True,
       unique=True,
@@ -31,7 +37,7 @@ class ApiKey(models.Model):
   api_key = models.CharField(
       blank=False,
       null=False,
-      max_length=63,
+      max_length=API_KEY_MAX_LENGTH,
       unique=True,
       verbose_name=_("API key"),
   )
@@ -64,7 +70,7 @@ class BoxDefinition(models.Model):
   title = models.CharField(
       blank=False,
       null=False,
-      max_length=63,
+      max_length=TITLE_MAX_LENGTH,
       db_index=True,
       verbose_name=_("title"),
   )
@@ -73,7 +79,7 @@ class BoxDefinition(models.Model):
   description = models.CharField(
       blank=True,
       null=True,
-      max_length=255,
+      max_length=DESCRIPTION_MAX_LENGTH,
       db_index=False,
       verbose_name=_("description"),
   )
@@ -97,14 +103,6 @@ class BoxDefinition(models.Model):
   @property
   def size(self):
     return 2**self.log2size
-
-  @property
-  def hit_rate(self):
-    return sum(outcome.hit_rate for outcome in self.outcomes)
-
-  @property
-  def average_return(self):
-    return sum(outcome.average_return for outcome in self.outcomes)
 
   def __setattr__(self, name, value):
     if name == "outcomes":
@@ -150,7 +148,7 @@ class Outcome(models.Model):
   title = models.CharField(
       blank=False,
       null=False,
-      max_length=63,
+      max_length=TITLE_MAX_LENGTH,
       db_index=True,
       verbose_name=_("title"),
   )
@@ -159,7 +157,7 @@ class Outcome(models.Model):
   description = models.CharField(
       blank=True,
       null=True,
-      max_length=255,
+      max_length=DESCRIPTION_MAX_LENGTH,
       db_index=False,
       verbose_name=_("description"),
   )
@@ -180,10 +178,85 @@ class Outcome(models.Model):
       verbose_name=_("amount out"),
   )
 
-  @property
-  def hit_rate(self):
-    return self.probability / self.box_definition.size
 
-  @property
-  def average_return(self):
-    return self.hit_rate * self.amount_out / self.box_definition.amount_in
+class Box(models.Model):
+
+  # The parent BoxDefinition
+  definition = models.ForeignKey(
+      blank=False,
+      null=False,
+      to=BoxDefinition,
+      db_index=True,
+      on_delete=models.CASCADE,
+      related_name="boxes",
+  )
+
+  # The initial random seed.
+  initial_seed = models.BigIntegerField(
+      blank=False,
+      null=False,
+      verbose_name=_("probability"),
+  )
+
+  # The actual hit rate.  (Fraction of outcomes with positive amounts)
+  actual_hit_rate = models.FloatField(
+      blank=False,
+      null=False,
+      verbose_name=_("actual hit rate"),
+  )
+
+  # The actual return (sum of all outcome output amounts).
+  actual_return = models.IntegerField(
+      blank=False,
+      null=False,
+      verbose_name=_("actual return"),
+  )
+
+  # The maximum amount out
+  max_amount_out = models.IntegerField(
+      blank=False,
+      null=False,
+      verbose_name=_("max amount out"),
+  )
+
+
+class Card(models.Model):
+
+  # The parent Box
+  box = models.ForeignKey(
+      blank=False,
+      null=False,
+      to=Box,
+      db_index=True,
+      on_delete=models.CASCADE,
+      related_name="cards",
+  )
+
+  # The outcome.
+  outcome = models.ForeignKey(blank=False, null=False, to=Outcome, on_delete=models.CASCADE)
+
+  # The sequence number.
+  sequence = models.PositiveIntegerField(
+      blank=False,
+      null=False,
+      db_index=True,
+      verbose_name=_("sequence"),
+  )
+
+  # The assigned user token.
+  user_token = models.CharField(
+      blank=True,
+      null=True,
+      max_length=USER_TOKEN_MAX_LENGTH,
+      db_index=True,
+      verbose_name=_("user token"),
+  )
+
+  # Whether this card has been consumed.
+  user_token = models.BooleanField(
+      blank=False,
+      null=False,
+      default=False,
+      db_index=True,
+      verbose_name=_("consumed"),
+  )

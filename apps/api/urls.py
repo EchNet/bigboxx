@@ -7,7 +7,8 @@ import api.views as api_views
 
 urlpatterns = [
     # Methods
-    url(r'^boxx/?$', api_views.BoxDefinitionsView.as_view()),
+    url(r'^boxx/?$', api_views.CreateOrListBoxDefinitionsView.as_view()),
+    url(r'^1.0/users/(?P<user_id>[0-9]+)/company/?$', views.UserCompanyView.as_view()),
     url(r'^boxx/validate/?$', api_views.ValidateBoxDefinition.as_view()),
     # Authentication
     url(r'^token-refresh/', refresh_jwt_token),

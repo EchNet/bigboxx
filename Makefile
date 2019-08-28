@@ -31,3 +31,6 @@ migrate:
 
 run: migrate
 	$(PYTHON) ./manage.py runserver 0.0.0.0:8800
+
+celery:
+	celery -A bigboxx worker --loglevel=debug

@@ -3,6 +3,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from api.models import (ApiKey, BoxDefinition, Outcome)
+from api.services import (BoxDefinitionService, OutcomeService)
 
 
 # Outcome
@@ -14,12 +15,28 @@ class OutcomeSerializer(serializers.ModelSerializer):
         "description",
         "probability",
         "amount_out",
-        "hit_rate",
-        "average_return",
     )
 
 
+class OutcomeServiceSerializer(serializers.ModelSerializer):
+  outcome = OutcomeSerializer()
+  hit_rate = serializers.FloatField()
+  average_return = serializers.FloatField()
+
+
 # BoxDefinition
+class BoxDefinitionWithoutOutcomesSerializer(serializers.ModelSerializer):
+  class Meta:
+    model = BoxDefinition
+    fields = (
+        "id",
+        "title",
+        "description",
+        "size",
+        "amount_in",
+    )
+
+
 class BoxDefinitionSerializer(serializers.ModelSerializer):
   class Meta:
     model = BoxDefinition
@@ -27,11 +44,8 @@ class BoxDefinitionSerializer(serializers.ModelSerializer):
         "id",
         "title",
         "description",
-        "log2size",
         "size",
         "amount_in",
-        "hit_rate",
-        "average_return",
         "outcomes",
     )
 
@@ -45,3 +59,10 @@ class BoxDefinitionListingSerializer(serializers.ModelSerializer):
         "id",
         "title",
     )
+
+
+class BoxDefinitionServiceSerializer(serializers.ModelSerializer):
+  box_definition = BoxDefinitionWithoutOutcomesSerializer()
+  outcomes = OutcomeServiceSerializer(many=True)
+  hit_rate = serializers.FloatField()
+  average_return = serializers.FloatField()
