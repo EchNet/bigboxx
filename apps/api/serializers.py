@@ -18,7 +18,7 @@ class OutcomeSerializer(serializers.ModelSerializer):
     )
 
 
-class OutcomeServiceSerializer(serializers.ModelSerializer):
+class OutcomeServiceSerializer(serializers.Serializer):
   outcome = OutcomeSerializer()
   hit_rate = serializers.FloatField()
   average_return = serializers.FloatField()
@@ -47,9 +47,14 @@ class BoxDefinitionSerializer(serializers.ModelSerializer):
         "size",
         "amount_in",
         "outcomes",
+        "in_service",
     )
 
   outcomes = OutcomeSerializer(many=True)
+  in_service = serializers.SerializerMethodField()
+
+  def get_in_service(self, obj):
+    return BoxDefinitionService(obj).in_service
 
 
 class BoxDefinitionListingSerializer(serializers.ModelSerializer):
@@ -61,7 +66,7 @@ class BoxDefinitionListingSerializer(serializers.ModelSerializer):
     )
 
 
-class BoxDefinitionServiceSerializer(serializers.ModelSerializer):
+class BoxDefinitionServiceSerializer(serializers.Serializer):
   box_definition = BoxDefinitionWithoutOutcomesSerializer()
   outcomes = OutcomeServiceSerializer(many=True)
   hit_rate = serializers.FloatField()

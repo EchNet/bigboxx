@@ -1,7 +1,7 @@
 import logging
 from django.core.validators import ValidationError
 
-from api.models import (BoxDefinition, Outcome)
+from api.models import (BoxDefinition, Card, Outcome)
 from api.services import BoxDefinitionService
 from utils.validator import (FieldValidator, ItemValidator)
 
@@ -38,6 +38,8 @@ class BoxDefinitionOrOutcomeValidator(ItemValidator):
 
 
 class BoxDefinitionValidator(BoxDefinitionOrOutcomeValidator):
+  _outcome_order = 1
+
   def validate_size(self):
     self._allow(LOG2_SIZE_FIELD_NAME) \
       .to_be_integer() \
@@ -48,8 +50,11 @@ class BoxDefinitionValidator(BoxDefinitionOrOutcomeValidator):
 
   def validate_outcomes(self):
     def buildOutcome(dict):
-      valid_fields = OutcomeValidator(dict).run().valid_fields
-      return Outcome(**valid_fields)
+      try:
+        valid_fields = OutcomeValidator(dict).run().valid_fields
+        return Outcome(**valid_fields, order=self._outcome_order)
+      finally:
+        self._outcome_order += 1
 
     self._expect(OUTCOMES_FIELD_NAME) \
       .to_be_array_of(buildOutcome) \
@@ -101,7 +106,6 @@ class BoxDefinitionOperations:
     return valid_fields, outcomes
 
 
-BOX_DEFINITION_ID_FIELD_NAME = "box_definition_id"
 USER_TOKEN_FIELD_NAME = "user_token"
 CONSUME_FIELD_NAME = "consume"
 
@@ -109,9 +113,6 @@ MAX_USER_TOKEN = 32
 
 
 class OutcomeClaimValidator(ItemValidator):
-  def validate_box_definition_id(self):
-    self._expect(BOX_DEFINITION_ID_FIELD_NAME).to_be_positive_integer().keep()
-
   def validate_user_token(self):
     self._expect(USER_TOKEN_FIELD_NAME).to_be_string().length_in_range(1, MAX_USER_TOKEN).keep()
 
@@ -119,7 +120,6 @@ class OutcomeClaimValidator(ItemValidator):
     self._allow(CONSUME_FIELD_NAME).to_be_bool().keep()
 
   def _run_validation(self):
-    self.validate_box_definition_id()
     self.validate_user_token()
     self.validate_consume()
 
@@ -128,11 +128,11 @@ class SubscriberOperations:
   def __init__(self, subscriber):
     self.subscriber = subscriber
 
-  def claim_outcome(self, **kwargs):
+  def claim_outcome(self, box_definition, **kwargs):
     valid_fields = OutcomeClaimValidator(kwargs).run().valid_fields
     logger.debug(str(valid_fields))
     card = self._get_or_create_card(
-        valid_fields.get(BOX_DEFINITION_ID_FIELD_NAME),
+        box_definition,
         valid_fields.get(USER_TOKEN_FIELD_NAME),
     )
     if valid_fields.get(CONSUME_FIELD_NAME, False):
@@ -140,17 +140,10 @@ class SubscriberOperations:
       card.save()
     return card.outcome
 
-  def _get_or_create_card(self, box_definition_id, user_token):
+  def _get_or_create_card(self, box_definition, user_token):
     card = Card.objects.filter(
-        box__box_definition_id=box_definition_id, user_token=user_token,
+        box__definition=box_definition, user_token=user_token,
         consumed=False).select_for_update().first()
     if not card:
-      box_definition = self._get_box_definition(box_definition_id)
-      BoxDefinitionService(box_definition_id).generate_card(user_token)
+      card = BoxDefinitionService(box_definition).generate_card(user_token)
     return card
-
-  def _get_box_definition(self, box_definition_id):
-    try:
-      return BoxDefinition.objects.filter(id=box_definition_id, subscriber=self.subscriber).get()
-    except BoxDefinition.DoesNotExist:
-      raise ValidationError({"box_definition_id": ["Box definition does not exist"]})

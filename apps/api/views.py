@@ -1,37 +1,38 @@
-from django.core.exceptions import PermissionDenied, ValidationError
-from django.http import Http404, JsonResponse
-from django.utils import timezone
-
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework import views, generics
-from rest_framework_jwt.settings import api_settings
-
 import logging
 
-from api.models import BoxDefinition, Subscriber
-from api.operations import BoxDefinitionOperations
-from api.permissions import ApiKeyPermission
+from django.core.exceptions import ValidationError
+from django.http import Http404, HttpResponseNotAllowed
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework import views
+
+from api.models import BoxDefinition
+from api.operations import (BoxDefinitionOperations, SubscriberOperations)
+import api.permissions as permissions
 import api.serializers as serializers
+from api.services import BoxDefinitionService
 
 logger = logging.getLogger(__name__)
 
 
 class BaseApiView(views.APIView):
-  permission_classes = (ApiKeyPermission, )
+  permission_classes = (permissions.ApiKeyPermission, )
+
   class Meta:
     methods = {}
 
-  def handle_request(request):
+  def handle_request(self, request):
     try:
-      logger.info(f"{self.__class__.__name__} {request.method} subscriber={request.subscriber} input={request.input}")
-      action = getattr(self, f"{request.method.lower()}_action")
-      data = action(self, request.subscriber, request.input)
+      logger.info(
+          f"{self.__class__.__name__} {request.method} subscriber={request.subscriber} input={request.data}"
+      )
+      action = getattr(self, f"do_{request.method.lower()}")
+      data = action(request)
       method_descriptor = self.Meta.methods[request.method]
       response_status = method_descriptor.get("ok_response_status", status.HTTP_200_OK)
       many = method_descriptor.get("many", False)
       serializer = method_descriptor.get("serializer", serializers.BoxDefinitionSerializer)
-      response_payload = { "data": serializer(data, many=many).data }
+      response_payload = {"data": serializer(data, many=many).data}
       logger.info(response_payload)
     except ValidationError as e:
       response_payload = {
@@ -46,63 +47,77 @@ class BaseApiView(views.APIView):
       response_status = status.HTTP_404_NOT_FOUND
     except Exception as e:
       logger.error(e)
-      response_payload = {"details": str(e)}
-      response_status = status.HTTP_500_INTERNAL_SERVER_ERROR
+      raise e
     return Response(response_payload, response_status)
 
-  def post(self, request):
-    return self.handle_request(request) if "POST" in self.Meta.methods else super().post(request)
+  def post(self, request, *args, **kwargs):
+    if "POST" in self.Meta.methods:
+      return self.handle_request(request)
+    return HttpResponseNotAllowed(self.Meta.methods.keys())
 
-  def get(self, request):
-    return self.handle_request(request) if "GET" in self.Meta.methods else super().get(request)
-
-
-class ValidateBoxDefinitionView(BaseApiView):
-  class Meta:
-    methods = {
-      "POST": {}
-    }
-
-  def post_action(self, subscriber, input):
-    return BoxDefinitionService(BoxDefinitionOperations(**input).validate())
+  def get(self, request, *args, **kwargs):
+    if "GET" in self.Meta.methods:
+      return self.handle_request(request)
+    return HttpResponseNotAllowed(self.Meta.methods.keys())
 
 
 class CreateOrListBoxDefinitionView(BaseApiView):
   class Meta:
     methods = {
-      "GET": {
-        "serializer": serializers.BoxDefinitionListingSerializer,
-        "many": True,
-      }
-      "POST": {
-        "ok_response_status": status.HTTP_201_CREATED,
-      }
+        "GET": {
+            "serializer": serializers.BoxDefinitionListingSerializer,
+            "many": True,
+        },
+        "POST": {
+            "ok_response_status": status.HTTP_201_CREATED,
+        }
     }
 
-  def post_action(self, subscriber, input):
-    return BoxDefinitionOperations(**input).build(subscriber)
+  def do_post(self, request):
+    return BoxDefinitionOperations(**request.data).build(request.subscriber)
 
-  def get_action(self, subscriber, input):
-    return BoxDefinition.objects.filter(subscriber=subscriber).all()
+  def do_get(self, request):
+    return BoxDefinition.objects.filter(subscriber=request.subscriber).all()
 
 
-class RetrieveBoxDefinitionView(BaseApiView):
-  class Meta:
-    methods = {
-      "GET": {
-      }
-    }
-
-  def get_action(self, subscriber, input):
-    pk = self.kwargs.get("pk", "")
+class BaseBoxDefinitionView(BaseApiView):
+  def get_object(self, request):
     try:
+      subscriber = request.subscriber
+      pk = self.kwargs.get("pk")
       return BoxDefinition.objects.filter(subscriber=subscriber, pk=pk).get()
     except BoxDefinition.DoesNotExist:
       raise Http404()
 
 
-class ClaimOutcomeView(views.APIView):
-  serializer = serializers.OutcomeSerializer
+class RetrieveBoxDefinitionView(BaseBoxDefinitionView):
+  class Meta:
+    methods = {"GET": {}}
 
-  def action(self, subscriber, input):
-    return SubscriberOperations(subscriber).claim_outcome(**input)
+  def do_get(self, request):
+    return self.get_object(request)
+
+
+class ValidateBoxDefinitionView(BaseApiView):
+  class Meta:
+    methods = {
+        "POST": {
+            "serializer": serializers.BoxDefinitionServiceSerializer,
+        }
+    }
+
+  def do_post(self, request):
+    return BoxDefinitionService(BoxDefinitionOperations(**request.data).validate())
+
+
+class ClaimOutcomeView(BaseBoxDefinitionView):
+  class Meta:
+    methods = {
+        "POST": {
+            "serializer": serializers.OutcomeSerializer,
+        }
+    }
+
+  def do_post(self, request):
+    box_definition = self.get_object(request)
+    return SubscriberOperations(request.subscriber).claim_outcome(box_definition, **request.data)

@@ -40,7 +40,7 @@
       <tr>
         <td>GET</td>
         <td>boxx/:id:</td>
-        <td>Get details of a particular boxx definition.</td>
+        <td>Get details of a particular boxx definition, including whether it is in service.</td>
         <td>Response: <pre>
 { "data": {
   "id": 2,
@@ -57,7 +57,8 @@
     "amount_out":10000,
     "hit_rate":3.814697265625e-06,
     "average_return":0.03814697265625
-  }]
+  }],
+  "in_service": true
 }</pre>
         </td>
       </tr>
@@ -96,17 +97,6 @@
         <td>Just validate a boxx definition. (As previous,
           but does not save the boxx defintion.)</td>
         <td>(Request and response as previous)
-        </td>
-      </tr>
-      <tr>
-        <td>GET</td>
-        <td>boxx/:id:/status</td>
-        <td>Request a boxx definition's status, in particular, whether
-            it is ready for service.</td>
-        <td>Response: <pre>
-{ "data": {
-  "id": 1, "in_service": true
-} } </pre>
         </td>
       </tr>
       <tr>

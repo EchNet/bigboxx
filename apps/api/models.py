@@ -130,6 +130,7 @@ class BoxDefinition(models.Model):
     super().save(*args, **kwargs)
     if is_new and self._pending_outcomes:
       for outcome in self._pending_outcomes:
+        outcome.box_definition_id = self.id
         outcome.save()
       self._pending_outcomes = None
 
@@ -176,6 +177,14 @@ class Outcome(models.Model):
       null=False,
       default=0,
       verbose_name=_("amount out"),
+  )
+
+  # For stable sort.
+  order = models.PositiveIntegerField(
+      blank=False,
+      null=False,
+      default=0,
+      verbose_name=_("order"),
   )
 
 
@@ -233,7 +242,7 @@ class Card(models.Model):
   )
 
   # The outcome.
-  outcome = models.ForeignKey(blank=False, null=False, to=Outcome, on_delete=models.CASCADE)
+  outcome = models.ForeignKey(blank=True, null=True, to=Outcome, on_delete=models.CASCADE)
 
   # The sequence number.
   sequence = models.PositiveIntegerField(
@@ -253,7 +262,7 @@ class Card(models.Model):
   )
 
   # Whether this card has been consumed.
-  user_token = models.BooleanField(
+  consumed = models.BooleanField(
       blank=False,
       null=False,
       default=False,
