@@ -16,16 +16,16 @@ class OperationsTestCase(TestCase):
     self.subscriber.save()
 
     self.valid_inputs = dict(
-        title="Title",
-        description="Description",
+        name="Title",
+        details="Description",
         log2size=20,
         amount_in=1,
         outcomes=[{
-            "title": "jackpot",
+            "name": "jackpot",
             "probability": 1,
             "amount_out": 100000
         }, {
-            "title": "nothing",
+            "name": "nothing",
             "probability": 60
         }])
 
@@ -39,11 +39,10 @@ class OperationsTestCase(TestCase):
       BoxDefinitionOperations(**self.valid_inputs).validate()
 
   def test_build_box_definition(self):
-    box_definition = BoxDefinitionOperations(**self.valid_inputs).build(self.subscriber)
+    box_definition = BoxDefinitionOperations(**self.valid_inputs).build()
     self.assertTrue(box_definition)
-    self.assertEqual(box_definition.subscriber, self.subscriber)
-    self.assertEqual(box_definition.title, "Title")
-    self.assertEqual(box_definition.description, "Description")
+    self.assertEqual(box_definition.name, "Title")
+    self.assertEqual(box_definition.details, "Description")
     self.assertEqual(box_definition.log2size, 20)
     self.assertEqual(box_definition.amount_in, 1)
     self.assertEqual(len(box_definition.outcomes), 2)

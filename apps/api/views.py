@@ -34,7 +34,7 @@ class BaseApiView(views.APIView):
       serializer = method_descriptor.get("serializer", serializers.BoxDefinitionSerializer)
       response_payload = {"data": serializer(data, many=many).data}
       logger.info(response_payload)
-    except ValidationError as e:
+    except ValidationError as ve:
       response_payload = {
           "message": "Invalid request.",
           "errors": ve.args,
@@ -74,18 +74,17 @@ class CreateOrListBoxDefinitionView(BaseApiView):
     }
 
   def do_post(self, request):
-    return BoxDefinitionOperations(**request.data).build(request.subscriber)
+    return BoxDefinitionOperations(**request.data).build()
 
   def do_get(self, request):
-    return BoxDefinition.objects.filter(subscriber=request.subscriber).all()
+    return BoxDefinition.objects.all()
 
 
 class BaseBoxDefinitionView(BaseApiView):
   def get_object(self, request):
     try:
-      subscriber = request.subscriber
       pk = self.kwargs.get("pk")
-      return BoxDefinition.objects.filter(subscriber=subscriber, pk=pk).get()
+      return BoxDefinition.objects.filter(pk=pk).get()
     except BoxDefinition.DoesNotExist:
       raise Http404()
 

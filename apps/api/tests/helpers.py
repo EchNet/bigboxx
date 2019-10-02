@@ -5,7 +5,7 @@ import string
 from django.test import TestCase
 from django.core.validators import ValidationError
 
-from api.models import ApiKey, Subscriber
+from api.models import ApiKey, Box, Subscriber
 from api.operations import BoxDefinitionOperations
 from api.services import BoxDefinitionService
 
@@ -45,16 +45,16 @@ class BaseTestCase(TestCase):
   def valid_box_definition_input(self):
     try:
       return dict(
-          title=f"BoxDefinition:{self._box_definition_count}",
-          description="Description",
+          name=f"BoxDefinition:{self._box_definition_count}",
+          details="Description",
           log2size=10,
           amount_in=1,
           outcomes=[{
-              "title": "jackpot",
+              "name": "jackpot",
               "probability": 1,
               "amount_out": 1000
           }, {
-              "title": "nothing",
+              "name": "nothing",
               "probability": 60
           }])
     finally:
@@ -63,11 +63,19 @@ class BaseTestCase(TestCase):
   def create_box_definition(self, subscriber=None, **kwargs):
     params = self.valid_box_definition_input()
     params.update(kwargs)
-    if subscriber is None:
-      subscriber = self.create_subscriber()
-    return BoxDefinitionOperations(**params).build(subscriber)
+    box_definition = BoxDefinitionOperations(**params).build()
+    if subscriber is not None:
+      box_definition.subscribers.add(subscriber)
+    return box_definition
 
-  def create_box(self, box_definition):
-    box = BoxDefinitionService(box_definition).create_random_box()
+  def put_box_definition_into_service(self, box_definition):
+    box_prospectus = BoxDefinitionService(box_definition).create_random_box_prospectus()
+    box_prospectus.save()
+    box = Box(
+        subscriber=box_definition.subscribers.all()[0],
+        series_token='SERIES',
+        box_prospectus=box_prospectus,
+        random_state=box_prospectus.initial_random_state,
+        card_count=0,
+    )
     box.save()
-    return box

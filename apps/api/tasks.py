@@ -23,16 +23,27 @@ def run_prepare_box_service(box_definition_id):
   logger.info(f"run_prepare_box_service({box_definition_id}): END")
 
 
-AMPLE_FREE_BOXES = 12
+AMPLE_FREE_BOXES = 2
+MAX_TRIALS = 12
 
 
 def prepare_box_service(box_definition):
+  logger.info(f"prepare box service {box_definition}")
   service = BoxDefinitionService(box_definition)
-  while service.free_box_count() < AMPLE_FREE_BOXES:
-    logger.info("Generating free box...")
-    box = service.create_random_box()
+  trials = 0
+  while trials < MAX_TRIALS and service.free_box_count() < AMPLE_FREE_BOXES:
+    logger.info("Generating trial box...")
+    t0 = timezone.now()
+    box = service.generate_trial_box()
+    t1 = timezone.now()
+    logger.info("Generated trial box in {t1 - t0}...")
     if not service.box_is_acceptable(box):
       logger.info("Box not accepted: {box.stats}")
     else:
       logger.info("Box accepted: {box.stats}")
-    box.save()
+      t0 = timezone.now()
+      service.commit_box(box)
+      t1 = timezone.now()
+      logger.info("Committed box in {t1 - t0}...")
+  if trials == MAX_TRIALS:
+    logger.error("GAVE UP")

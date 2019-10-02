@@ -7,8 +7,8 @@ from utils.validator import (FieldValidator, ItemValidator)
 
 logger = logging.getLogger(__name__)
 
-TITLE_FIELD_NAME = "title"
-DESCRIPTION_FIELD_NAME = "description"
+TITLE_FIELD_NAME = "name"
+DESCRIPTION_FIELD_NAME = "details"
 AMOUNT_IN_FIELD_NAME = "amount_in"
 AMOUNT_OUT_FIELD_NAME = "amount_out"
 LOG2_SIZE_FIELD_NAME = "log2size"
@@ -92,9 +92,9 @@ class BoxDefinitionOperations:
     box_definition.outcomes = outcomes
     return box_definition
 
-  def build(self, subscriber):
+  def build(self):
     valid_fields, outcomes = self._validate_inputs()
-    box_definition = BoxDefinition(subscriber=subscriber, **valid_fields)
+    box_definition = BoxDefinition(**valid_fields)
     box_definition.outcomes = outcomes
     box_definition.save()
     return box_definition
@@ -142,7 +142,7 @@ class SubscriberOperations:
 
   def _get_or_create_card(self, box_definition, user_token):
     card = Card.objects.filter(
-        box__definition=box_definition, user_token=user_token,
+        box__box_prospectus__box_definition=box_definition, user_token=user_token,
         consumed=False).select_for_update().first()
     if not card:
       card = BoxDefinitionService(box_definition).generate_card(user_token)

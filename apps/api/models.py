@@ -2,10 +2,9 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 API_KEY_MAX_LENGTH = 63
-TITLE_MAX_LENGTH = 63
 NAME_MAX_LENGTH = 63
-DESCRIPTION_MAX_LENGTH = 255
-USER_TOKEN_MAX_LENGTH = 31
+DETAILS_MAX_LENGTH = 255
+TOKEN_MAX_LENGTH = 31
 
 
 class Subscriber(models.Model):
@@ -53,35 +52,26 @@ class ApiKey(models.Model):
 
 class BoxDefinition(models.Model):
   """
-    This is a template from which boxes may be generated.
+    Define a class of boxes in terms of its outcomes, their probabilities, and other parameters.
   """
   _pending_outcomes = None
 
-  # Who this box definition belongs to.
-  subscriber = models.ForeignKey(
-      blank=True,
-      null=True,
-      to=Subscriber,
-      on_delete=models.CASCADE,
-      related_name="box_definitions",
-  )
-
-  # User-defined title string.
-  title = models.CharField(
+  # User-defined name.
+  name = models.CharField(
       blank=False,
       null=False,
-      max_length=TITLE_MAX_LENGTH,
+      max_length=NAME_MAX_LENGTH,
       db_index=True,
-      verbose_name=_("title"),
+      verbose_name=_("name"),
   )
 
-  # User-defined description.
-  description = models.CharField(
+  # User-defined details (whatever the user desires, typically descriptive text)
+  details = models.CharField(
       blank=True,
       null=True,
-      max_length=DESCRIPTION_MAX_LENGTH,
+      max_length=DETAILS_MAX_LENGTH,
       db_index=False,
-      verbose_name=_("description"),
+      verbose_name=_("details"),
   )
 
   # The log base 2 of the size of this box.
@@ -99,6 +89,9 @@ class BoxDefinition(models.Model):
       default=1,
       verbose_name=_("amount in"),
   )
+
+  # Access to this box definition depends on this association.
+  subscribers = models.ManyToManyField(to=Subscriber, related_name="box_definitions")
 
   @property
   def size(self):
@@ -145,22 +138,22 @@ class Outcome(models.Model):
       related_name="saved_outcomes",
   )
 
-  # User-defined title string.
-  title = models.CharField(
+  # User-defined outcome name.
+  name = models.CharField(
       blank=False,
       null=False,
-      max_length=TITLE_MAX_LENGTH,
+      max_length=NAME_MAX_LENGTH,
       db_index=True,
-      verbose_name=_("title"),
+      verbose_name=_("name"),
   )
 
-  # User-defined description.
-  description = models.CharField(
+  # User-defined details (typically instructions for display of results).
+  details = models.CharField(
       blank=True,
       null=True,
-      max_length=DESCRIPTION_MAX_LENGTH,
+      max_length=DETAILS_MAX_LENGTH,
       db_index=False,
-      verbose_name=_("description"),
+      verbose_name=_("details"),
   )
 
   # Numerator of the probability of this outcome (the denominator is the box size).
@@ -188,23 +181,23 @@ class Outcome(models.Model):
   )
 
 
-class Box(models.Model):
+class BoxProspectus(models.Model):
 
-  # The parent BoxDefinition
-  definition = models.ForeignKey(
+  # The BoxDefinition
+  box_definition = models.ForeignKey(
       blank=False,
       null=False,
       to=BoxDefinition,
       db_index=True,
       on_delete=models.CASCADE,
-      related_name="boxes",
+      related_name="box_prospectus",
   )
 
-  # The initial random seed.
-  initial_seed = models.BigIntegerField(
+  # The initial randomizer state.
+  initial_random_state = models.BigIntegerField(
       blank=False,
       null=False,
-      verbose_name=_("probability"),
+      verbose_name=_("initial state"),
   )
 
   # The actual hit rate.  (Fraction of outcomes with positive amounts)
@@ -226,6 +219,60 @@ class Box(models.Model):
       blank=False,
       null=False,
       verbose_name=_("max amount out"),
+  )
+
+
+class Box(models.Model):
+
+  # Who this box belongs to.
+  subscriber = models.ForeignKey(
+      blank=False,
+      null=False,
+      to=Subscriber,
+      on_delete=models.CASCADE,
+      related_name="boxes",
+  )
+
+  # The series token.  An opaque code that identifies a consistent grouping of boxes.
+  series_token = models.CharField(
+      blank=False,
+      null=False,
+      max_length=TOKEN_MAX_LENGTH,
+      db_index=True,
+      verbose_name=_("series token"),
+  )
+
+  # The BoxProspectus
+  box_prospectus = models.ForeignKey(
+      blank=False,
+      null=False,
+      to=BoxProspectus,
+      db_index=True,
+      on_delete=models.CASCADE,
+      related_name="boxes",
+  )
+
+  # The current randomizer state.
+  random_state = models.BigIntegerField(
+      blank=False,
+      null=False,
+      verbose_name=_("current state"),
+  )
+
+  # The current card count.
+  card_count = models.PositiveIntegerField(
+      blank=False,
+      null=False,
+      default=0,
+      verbose_name=_("current state"),
+  )
+
+  # Open or closed.
+  is_closed = models.BooleanField(
+      blank=True,
+      null=False,
+      default=False,
+      verbose_name=_("is closed"),
   )
 
 
@@ -254,9 +301,9 @@ class Card(models.Model):
 
   # The assigned user token.
   user_token = models.CharField(
-      blank=True,
-      null=True,
-      max_length=USER_TOKEN_MAX_LENGTH,
+      blank=False,
+      null=False,
+      max_length=TOKEN_MAX_LENGTH,
       db_index=True,
       verbose_name=_("user token"),
   )

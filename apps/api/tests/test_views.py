@@ -84,8 +84,7 @@ class RetrieveBoxDefinitionViewTestCase(BaseTestCase):
     self.assertEqual(response.status_code, 200)
     self.assertTrue(response.data)
     self.assertTrue(response.data["data"])
-    self.assertTrue(response.data["data"]["title"])
-    self.assertEqual(response.data["data"]["in_service"], False)
+    self.assertTrue(response.data["data"]["name"])
 
 
 class ValidateBoxDefinitionViewTestCase(BaseTestCase):
@@ -144,7 +143,7 @@ class ClaimOutcomeViewTestCase(BaseTestCase):
   def test_post(self):
     subscriber = self.create_subscriber()
     box_definition = self.create_box_definition(subscriber)
-    box = self.create_box(box_definition)
+    self.put_box_definition_into_service(box_definition)
     data = json.dumps(dict(user_token="user1"))
     request = self.factory.post(
         self.get_url(box_definition.id), data=data, content_type="application/json")

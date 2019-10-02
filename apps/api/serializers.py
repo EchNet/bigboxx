@@ -11,8 +11,8 @@ class OutcomeSerializer(serializers.ModelSerializer):
   class Meta:
     model = Outcome
     fields = (
-        "title",
-        "description",
+        "name",
+        "details",
         "probability",
         "amount_out",
     )
@@ -30,8 +30,8 @@ class BoxDefinitionWithoutOutcomesSerializer(serializers.ModelSerializer):
     model = BoxDefinition
     fields = (
         "id",
-        "title",
-        "description",
+        "name",
+        "details",
         "size",
         "amount_in",
     )
@@ -42,19 +42,14 @@ class BoxDefinitionSerializer(serializers.ModelSerializer):
     model = BoxDefinition
     fields = (
         "id",
-        "title",
-        "description",
+        "name",
+        "details",
         "size",
         "amount_in",
         "outcomes",
-        "in_service",
     )
 
   outcomes = OutcomeSerializer(many=True)
-  in_service = serializers.SerializerMethodField()
-
-  def get_in_service(self, obj):
-    return BoxDefinitionService(obj).in_service
 
 
 class BoxDefinitionListingSerializer(serializers.ModelSerializer):
@@ -62,7 +57,7 @@ class BoxDefinitionListingSerializer(serializers.ModelSerializer):
     model = BoxDefinition
     fields = (
         "id",
-        "title",
+        "name",
     )
 
 
