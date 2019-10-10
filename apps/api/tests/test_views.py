@@ -4,7 +4,8 @@ from django.core.validators import ValidationError
 from rest_framework.test import APIRequestFactory
 
 from api.views import (
-    ClaimOutcomeView,
+    PeekView,
+    TakeView,
     CreateOrListBoxDefinitionView,
     RetrieveBoxDefinitionView,
     ValidateBoxDefinitionView,
@@ -88,7 +89,7 @@ class RetrieveBoxDefinitionViewTestCase(BaseTestCase):
 
 
 class ValidateBoxDefinitionViewTestCase(BaseTestCase):
-  URL = "/api/1.0/boxx/validate"
+  URL = "/api/1.0/validate-boxx"
   factory = APIRequestFactory()
 
   def setUp(self):
@@ -108,19 +109,20 @@ class ValidateBoxDefinitionViewTestCase(BaseTestCase):
     self.assertEqual(response.status_code, 200)
     self.assertTrue(response.data)
     self.assertTrue(response.data["data"])
-    self.assertTrue(response.data["data"]["box_definition"])
+    self.assertTrue(response.data["data"]["name"])
+    self.assertTrue(response.data["data"]["outcomes"])
 
 
-class ClaimOutcomeViewTestCase(BaseTestCase):
+class PeekViewTestCase(BaseTestCase):
   URL = "/api/1.0/boxx/claim"
   factory = APIRequestFactory()
 
   def setUp(self):
-    self.view = ClaimOutcomeView.as_view()
+    self.view = PeekView.as_view()
 
   @staticmethod
   def get_url(id):
-    return f"/api/1.0/boxx/{id}/claim"
+    return f"/api/1.0/boxx/{id}/peek"
 
   def test_wrong_method(self):
     request = self.factory.get(self.URL)
@@ -143,7 +145,6 @@ class ClaimOutcomeViewTestCase(BaseTestCase):
   def test_post(self):
     subscriber = self.create_subscriber()
     box_definition = self.create_box_definition(subscriber)
-    self.put_box_definition_into_service(box_definition)
     data = json.dumps(dict(user_token="user1"))
     request = self.factory.post(
         self.get_url(box_definition.id), data=data, content_type="application/json")
@@ -152,4 +153,47 @@ class ClaimOutcomeViewTestCase(BaseTestCase):
     self.assertEqual(response.status_code, 200)
     self.assertTrue(response.data)
     self.assertTrue(response.data["data"])
-    self.assertTrue("amount_out" in response.data["data"])
+    self.assertTrue("outcome" in response.data["data"])
+
+
+class TakeViewTestCase(BaseTestCase):
+  URL = "/api/1.0/boxx/claim"
+  factory = APIRequestFactory()
+
+  def setUp(self):
+    self.view = TakeView.as_view()
+
+  @staticmethod
+  def get_url(id):
+    return f"/api/1.0/boxx/{id}/take"
+
+  def test_wrong_method(self):
+    request = self.factory.get(self.URL)
+    request.META["HTTP_X_API_KEY"] = self.create_api_key()
+    response = self.view(request)
+    self.assertEqual(response.status_code, 405)
+
+  def test_wrong_method(self):
+    request = self.factory.get(self.get_url(1))
+    request.META["HTTP_X_API_KEY"] = self.create_api_key()
+    response = self.view(request)
+    self.assertEqual(response.status_code, 405)
+
+  def test_get_404(self):
+    request = self.factory.post(self.get_url(1), json.dumps({}), content_type="application/json")
+    request.META["HTTP_X_API_KEY"] = self.create_api_key()
+    response = self.view(request, pk=1)
+    self.assertEqual(response.status_code, 404)
+
+  def test_post(self):
+    subscriber = self.create_subscriber()
+    box_definition = self.create_box_definition(subscriber)
+    data = json.dumps(dict(user_token="user1"))
+    request = self.factory.post(
+        self.get_url(box_definition.id), data=data, content_type="application/json")
+    request.META["HTTP_X_API_KEY"] = self.create_api_key(subscriber)
+    response = self.view(request, pk=box_definition.pk)
+    self.assertEqual(response.status_code, 200)
+    self.assertTrue(response.data)
+    self.assertTrue(response.data["data"])
+    self.assertTrue("outcome" in response.data["data"])

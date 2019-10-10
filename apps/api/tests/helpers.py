@@ -7,7 +7,6 @@ from django.core.validators import ValidationError
 
 from api.models import ApiKey, Box, Subscriber
 from api.operations import BoxDefinitionOperations
-from api.services import BoxDefinitionService
 
 
 class BaseTestCase(TestCase):
@@ -67,15 +66,3 @@ class BaseTestCase(TestCase):
     if subscriber is not None:
       box_definition.subscribers.add(subscriber)
     return box_definition
-
-  def put_box_definition_into_service(self, box_definition):
-    box_prospectus = BoxDefinitionService(box_definition).create_random_box_prospectus()
-    box_prospectus.save()
-    box = Box(
-        subscriber=box_definition.subscribers.all()[0],
-        series_token='SERIES',
-        box_prospectus=box_prospectus,
-        random_state=box_prospectus.initial_random_state,
-        card_count=0,
-    )
-    box.save()

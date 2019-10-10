@@ -1,8 +1,9 @@
+# Rename to validators.py
+
 import logging
 from django.core.validators import ValidationError
 
 from api.models import (BoxDefinition, Card, Outcome)
-from api.services import BoxDefinitionService
 from utils.validator import (FieldValidator, ItemValidator)
 
 logger = logging.getLogger(__name__)
@@ -107,43 +108,27 @@ class BoxDefinitionOperations:
 
 
 USER_TOKEN_FIELD_NAME = "user_token"
-CONSUME_FIELD_NAME = "consume"
+SERIES_TOKEN_FIELD_NAME = "series_token"
 
-MAX_USER_TOKEN = 32
+MAX_TOKEN_LEN = 32
 
 
-class OutcomeClaimValidator(ItemValidator):
+class CardClaimValidator(ItemValidator):
+  def __init__(self, **kwargs):
+    super().__init__(kwargs)
+
   def validate_user_token(self):
-    self._expect(USER_TOKEN_FIELD_NAME).to_be_string().length_in_range(1, MAX_USER_TOKEN).keep()
+    self._expect(USER_TOKEN_FIELD_NAME).to_be_string().length_in_range(1, MAX_TOKEN_LEN).keep()
 
-  def validate_consume(self):
-    self._allow(CONSUME_FIELD_NAME).to_be_bool().keep()
+  def validate_series_token(self):
+    self._allow(SERIES_TOKEN_FIELD_NAME).to_be_string().length_in_range(1, MAX_TOKEN_LEN).keep()
 
   def _run_validation(self):
     self.validate_user_token()
-    self.validate_consume()
+    self.validate_series_token()
 
-
-class SubscriberOperations:
-  def __init__(self, subscriber):
-    self.subscriber = subscriber
-
-  def claim_outcome(self, box_definition, **kwargs):
-    valid_fields = OutcomeClaimValidator(kwargs).run().valid_fields
-    logger.debug(str(valid_fields))
-    card = self._get_or_create_card(
-        box_definition,
-        valid_fields.get(USER_TOKEN_FIELD_NAME),
-    )
-    if valid_fields.get(CONSUME_FIELD_NAME, False):
-      card.consumed = True
-      card.save()
-    return card.outcome
-
-  def _get_or_create_card(self, box_definition, user_token):
-    card = Card.objects.filter(
-        box__box_prospectus__box_definition=box_definition, user_token=user_token,
-        consumed=False).select_for_update().first()
-    if not card:
-      card = BoxDefinitionService(box_definition).generate_card(user_token)
-    return card
+  def validate(self):
+    self.run()
+    user_token = self.valid_fields.get(USER_TOKEN_FIELD_NAME)
+    series_token = self.valid_fields.get(SERIES_TOKEN_FIELD_NAME, "")
+    return user_token, series_token

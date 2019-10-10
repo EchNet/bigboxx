@@ -7,25 +7,20 @@ from rest_framework.response import Response
 from rest_framework import views
 
 from api.models import BoxDefinition
-from api.operations import (BoxDefinitionOperations, SubscriberOperations)
 import api.permissions as permissions
 import api.serializers as serializers
-from api.services import BoxDefinitionService
+from api.services import ServiceManager
 
 logger = logging.getLogger(__name__)
 
 
 class BaseApiView(views.APIView):
-  permission_classes = (permissions.ApiKeyPermission, )
-
   class Meta:
     methods = {}
 
   def handle_request(self, request):
     try:
-      logger.info(
-          f"{self.__class__.__name__} {request.method} subscriber={request.subscriber} input={request.data}"
-      )
+      logger.info(f"{self.__class__.__name__} {request.method} input={request.data}")
       action = getattr(self, f"do_{request.method.lower()}")
       data = action(request)
       method_descriptor = self.Meta.methods[request.method]
@@ -62,6 +57,8 @@ class BaseApiView(views.APIView):
 
 
 class CreateOrListBoxDefinitionView(BaseApiView):
+  permission_classes = (permissions.ApiKeyPermission, )
+
   class Meta:
     methods = {
         "GET": {
@@ -74,17 +71,33 @@ class CreateOrListBoxDefinitionView(BaseApiView):
     }
 
   def do_post(self, request):
-    return BoxDefinitionOperations(**request.data).build()
+    return ServiceManager(subscriber=request.subscriber).create_box_definition(**request.data)
 
   def do_get(self, request):
-    return BoxDefinition.objects.all()
+    return ServiceManager(subscriber=request.subscriber).get_box_definitions()
+
+
+class ValidateBoxDefinitionView(BaseApiView):
+  permission_classes = ()
+
+  class Meta:
+    methods = {
+        "POST": {
+            "ok_response_status": status.HTTP_200_OK,
+        }
+    }
+
+  def do_post(self, request):
+    return ServiceManager().validate_box_definition(**request.data)
 
 
 class BaseBoxDefinitionView(BaseApiView):
+  permission_classes = (permissions.ApiKeyPermission, )
+
   def get_object(self, request):
     try:
       pk = self.kwargs.get("pk")
-      return BoxDefinition.objects.filter(pk=pk).get()
+      return ServiceManager(subscriber=request.subscriber).get_box_definition(pk)
     except BoxDefinition.DoesNotExist:
       raise Http404()
 
@@ -97,26 +110,29 @@ class RetrieveBoxDefinitionView(BaseBoxDefinitionView):
     return self.get_object(request)
 
 
-class ValidateBoxDefinitionView(BaseApiView):
+class PeekView(BaseBoxDefinitionView):
   class Meta:
     methods = {
         "POST": {
-            "serializer": serializers.BoxDefinitionServiceSerializer,
+            "serializer": serializers.CardSerializer,
         }
     }
 
   def do_post(self, request):
-    return BoxDefinitionService(BoxDefinitionOperations(**request.data).validate())
+    return ServiceManager(
+        subscriber=request.subscriber,
+        box_definition=self.get_object(request)).claim_card(**request.data)
 
 
-class ClaimOutcomeView(BaseBoxDefinitionView):
+class TakeView(BaseBoxDefinitionView):
   class Meta:
     methods = {
         "POST": {
-            "serializer": serializers.OutcomeSerializer,
+            "serializer": serializers.CardSerializer,
         }
     }
 
   def do_post(self, request):
-    box_definition = self.get_object(request)
-    return SubscriberOperations(request.subscriber).claim_outcome(box_definition, **request.data)
+    return ServiceManager(
+        subscriber=request.subscriber, box_definition=self.get_object(request)).claim_card(
+            consume=True, **request.data)

@@ -1,161 +1,194 @@
 import random
 
-from api.models import (Box, BoxDefinition, BoxProspectus, Card, Outcome)
+from api.models import (Box, BoxDefinition, BoxProspectus, Card)
+from api.operations import BoxDefinitionOperations, CardClaimValidator
 
 
-class BoxDefinitionService(object):
-  _result_lookup = None
-
-  def __init__(self, box_definition):
-    self.box_definition = box_definition
-
-  @property
-  def outcomes(self):
-    return (OutcomeService(outcome) for outcome in self.box_definition.outcomes)
+class ServiceManager(object):
+  def __init__(self, **kwargs):
+    self.kwargs = kwargs
 
   @property
-  def hit_rate(self):
-    return sum(outcome.hit_rate for outcome in self.outcomes)
+  def subscriber(self):
+    return self.kwargs.get("subscriber")
 
   @property
-  def average_return(self):
-    return sum(outcome.average_return for outcome in self.outcomes)
+  def box_definition(self):
+    return self.kwargs.get("box_definition")
 
-  def create_random_box_prospectus(self):
+  def create_box_definition(self, **kwargs):
+    box_definition = BoxDefinitionOperations(**kwargs).build()
+    box_definition.subscribers.add(self.subscriber)
+    return box_definition
+
+  def get_box_definitions(self):
+    return self.subscriber.box_definitions.all()
+
+  def validate_box_definition(self, **kwargs):
+    return BoxDefinitionOperations(**kwargs).validate()
+
+  def get_box_definition(self, pk):
+    return self.subscriber.box_definitions.get(pk=pk)
+
+  def claim_card(self, consume=False, **kwargs):
+    user_token, series_token = CardClaimValidator(**kwargs).validate()
+    return ClaimCardOperation(self, user_token, series_token).run(consume)
+
+
+class ClaimCardOperation:
+  def __init__(self, service, user_token, series_token):
+    self.service = service
+    self.user_token = user_token
+    self.series_token = series_token
+
+  @property
+  def subscriber(self):
+    return self.service.subscriber
+
+  @property
+  def box_definition(self):
+    return self.service.box_definition
+
+  def run(self, consume):
+    card = self._get_or_create_card()
+    if consume:
+      card.consumed = True
+    return card
+
+  def _get_or_create_card(self):
+    return self._get_existing_card() or self._create_new_card()
+
+  def _get_existing_card(self):
+    return Card.objects.filter(
+        box__box_prospectus__box_definition=self.box_definition,
+        box__subscriber=self.subscriber,
+        box__series_token=self.series_token,
+        user_token=self.user_token,
+        consumed=False,
+    ).first()
+
+  def _create_new_card(self):
+    # First, we need a box.
+    box = self._get_or_create_box()
+    return self._generate_next_card(box)
+
+  def _get_or_create_box(self):
+    return self._get_existing_box() or self._create_new_box()
+
+  # TODO: locking, wait don't generate
+  def _get_existing_box(self):
+    return Box.objects.filter(
+        box_prospectus__box_definition=self.box_definition,
+        subscriber=self.subscriber,
+        series_token=self.series_token,
+        is_closed=False,
+    ).first()
+
+  def _create_new_box(self):
+    box_prospectus = self._create_new_box_prospectus()
+    box = Box(
+        subscriber=self.subscriber,
+        series_token=self.series_token,
+        box_prospectus=box_prospectus,
+        random_state=box_prospectus.initial_random_state)
+    box.save()
+    return box
+
+  def _create_new_box_prospectus(self):
     seed = int(random.getrandbits(48))
-    stats = self._walk_box(seed, self.BoxStats(self.box_definition))
-    return BoxProspectus(
+    random.seed(seed)
+    box_stats = BoxStats(self.box_definition)
+    outcome_index = OutcomeIndex(self.box_definition)
+    for i in range(0, self.box_definition.size):
+      x = random.getrandbits(self.box_definition.log2size)
+      outcome = outcome_index.rand_to_outcome(x)
+      box_stats.accum(outcome)
+    box_prospectus = BoxProspectus(
         box_definition=self.box_definition,
         initial_random_state=seed,
-        actual_hit_rate=stats.actual_hit_rate,
-        actual_return=stats.actual_return,
-        max_amount_out=stats.max_amount_out,
+        actual_hit_rate=box_stats.actual_hit_rate,
+        actual_return=box_stats.actual_return,
+        max_amount_out=box_stats.max_amount_out,
     )
+    box_prospectus.save()
+    return box_prospectus
 
-  class BoxStats:
-    def __init__(self, box_definition):
-      self._box_definition = box_definition
-      self._total_amount_out = 0
-      self._max_amount_out = 0
-      self._hit_count = 0
+  # TODO: locking, locking, locking
+  def _generate_next_card(self, box):
+    outcome_index = OutcomeIndex(self.box_definition)
+    random.seed(box.random_state)
+    x = random.getrandbits(self.box_definition.log2size)
+    outcome = outcome_index.rand_to_outcome(x)
+    card = Card(
+        box=box,
+        outcome=outcome,
+        sequence=box.card_count,
+        user_token=self.user_token,
+    )
+    card.save()
 
-    def accum(self, outcome):
-      if outcome and outcome.amount_out > 0:
-        self._total_amount_out += outcome.amount_out
-        self._max_amount_out = max(self._max_amount_out, outcome.amount_out)
-        self._hit_count += 1
+    # TODO: really save state
+    box.random_state = random.getstate()[0]
+    box.card_count += 1
+    if box.card_count >= self.box_definition.size:
+      box.is_closed = True
+    box.save()
+    return card
 
-    @property
-    def actual_return(self):
-      return self._total_amount_out / (self._box_definition.size * self._box_definition.amount_in)
 
-    @property
-    def actual_hit_rate(self):
-      return self._total_amount_out / (self._box_definition.size * self._box_definition.amount_in)
-
-    @property
-    def max_amount_out(self):
-      return self._max_amount_out
-
-  def _walk_box(self, seed, accumulator):
-    random.seed(seed)
-    for i in range(0, self.box_definition.size):
-      x = random.randint(0, self.box_definition.size - 1)
-      outcome = self._rand_to_outcome(x)
-      accumulator.accum(outcome)
-    return accumulator
-
-  def _get_result_lookup(self):
-    if self._result_lookup is None:
-      self._result_lookup = self._assemble_result_lookup()
-    return self._result_lookup
-
-  def _assemble_result_lookup(self):
-    result_lookup = []
+class OutcomeIndex:
+  def __init__(self, box_definition):
+    self.box_definition = box_definition
+    self.result_lookup = []
     total_probability = 0
     for outcome in self.box_definition.outcomes:
       total_probability += outcome.probability
-      result_lookup.append({
+      self.result_lookup.append({
           "outcome": outcome,
           "probability": outcome.probability,
           "order": outcome.order,
       })
     if total_probability < self.box_definition.size:
-      result_lookup.append({
+      self.result_lookup.append({
           "outcome": None,
           "probability": self.box_definition.size - total_probability,
           "order": 0,
       })
-    result_lookup = sorted(
-        result_lookup, key=lambda o: (o["probability"], o["order"]), reverse=True)
+    self.result_lookup = sorted(
+        self.result_lookup, key=lambda o: (o["probability"], o["order"]), reverse=True)
     breakpoint = 0
-    for obj in result_lookup:
+    for obj in self.result_lookup:
       breakpoint += obj["probability"]
       obj["breakpoint"] = breakpoint
-    return result_lookup
 
-  def _rand_to_outcome(self, x):
-    for obj in self._get_result_lookup():
+  def rand_to_outcome(self, x):
+    for obj in self.result_lookup:
       if x < obj["breakpoint"]:
         return obj["outcome"]
     raise ValueError(f"{x} exceeds final breakpoint {obj['breakpoint']}")
 
-  def box_is_acceptable(self, box):
-    return True
 
-  def claim_card(self, user_token):
-    card = Card.objects.filter(
-        box__box_definition=self.box_definition,
-        user_token__isnull=True).select_for_update().get()
-    card.user_token = user_token
-    card.save()
-    return card
+class BoxStats:
+  def __init__(self, box_definition):
+    self._box_definition = box_definition
+    self._total_amount_out = 0
+    self._max_amount_out = 0
+    self._hit_count = 0
 
-  def commit_box(self, box):
-    seed = int(random.getrandbits(32))
-    random.seed(seed)
-
-    total_amount_out = 0
-    max_amount_out = 0
-    hit_count = 0
-    for i in range(0, self.box_definition.size):
-      x = random.randint(0, self.box_definition.size - 1)
-      outcome = self._rand_to_outcome(outcomes)
-      if outcome and outcome.amount_out > 0:
-        total_amount_out += outcome.amount_out
-        max_amount_out = max(max_amount_out, outcome.amount_out)
-        hit_count += 1
-    return BoxProspectus(
-        definition=self.box_definition,
-        initial_seed=seed,
-        actual_hit_rate=(hit_count / self.box_definition.size),
-        actual_return=(
-            total_amount_out / self.box_definition.amount_in / self.box_definition.size),
-        max_amount_out=max_amount_out,
-    )
-
-  def generate_card(self, user_token):
-    # TODO continue the sequence, deplete box
-    x = random.randint(0, self.box_definition.size - 1)
-    outcome = self._rand_to_outcome(x)
-    card = Card(
-        box=self.box_definition.box_prospectus.all()[0].boxes.all()[0],
-        outcome=outcome,
-        sequence=1,
-        user_token=user_token,
-    )
-    card.save()
-    return card
-
-
-class OutcomeService(object):
-  def __init__(self, outcome):
-    self.outcome = outcome
+  def accum(self, outcome):
+    if outcome and outcome.amount_out > 0:
+      self._total_amount_out += outcome.amount_out
+      self._max_amount_out = max(self._max_amount_out, outcome.amount_out)
+      self._hit_count += 1
 
   @property
-  def hit_rate(self):
-    return self.outcome.probability / self.outcome.box_definition.size
+  def actual_return(self):
+    return self._total_amount_out / (self._box_definition.size * self._box_definition.amount_in)
 
   @property
-  def average_return(self):
-    return self.hit_rate * self.outcome.amount_out / self.outcome.box_definition.amount_in
+  def actual_hit_rate(self):
+    return self._total_amount_out / (self._box_definition.size * self._box_definition.amount_in)
+
+  @property
+  def max_amount_out(self):
+    return self._max_amount_out

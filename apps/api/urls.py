@@ -9,8 +9,9 @@ urlpatterns = [
     # Methods
     url(r'^boxx/?$', api_views.CreateOrListBoxDefinitionView.as_view()),
     url(r'^boxx/(?P<pk>[0-9]+)/?$', api_views.RetrieveBoxDefinitionView.as_view()),
-    url(r'^boxx/(?P<pk>[0-9]+)/claim/?$', api_views.ClaimOutcomeView.as_view()),
-    url(r'^boxx/validate/?$', api_views.ValidateBoxDefinitionView.as_view()),
+    url(r'^validate-boxx/?$', api_views.ValidateBoxDefinitionView.as_view()),
+    url(r'^boxx/(?P<pk>[0-9]+)/peek/?$', api_views.PeekView.as_view()),
+    url(r'^boxx/(?P<pk>[0-9]+)/take/?$', api_views.TakeView.as_view()),
     # Authentication
     url(r'^token-refresh/', refresh_jwt_token),
     url(r'^token-verify/', verify_jwt_token),
