@@ -3,6 +3,8 @@
 {% block header %}
   <script type="text/javascript">
     function startServiceWait() {
+      $("#boxDefinitionOutput").val("")
+      $("#boxDefinitionOutput").removeClass("error")
     }
 
     function endServiceWait() {
@@ -11,6 +13,8 @@
     function showServiceError(error) {
       if (error.responseText) {
         console.log(error.responseText);
+        $("#boxDefinitionOutput").val(error.responseText)
+        $("#boxDefinitionOutput").addClass("error")
       }
     }
 
@@ -28,156 +32,95 @@
       .always(endServiceWait);
     }
 
-    /*********/
-
-    var selectedBoxId;
-
-    function apiKeyChanged() {
-      $("#dependsOnApiKey").hide()
-    }
-
-    function apiKeySubmitted() {
-      refreshBoxList()
-    }
-
-    function refreshBoxList() {
-      invokeService("GET", "boxx/", {}, function(results) {
-        $("#dependsOnApiKey").show()
-        $("#listOfBoxes").empty();
-        if (!results.data || !!results.data.length) {
-          $("#listOfBoxes").append($("<span style='color: orange'>None</span>"));
-        }
-        else {
-          for (var i = 0, len = results.data.length; i < len; ++i) {
-            $("#listOfBoxes").append($("<li onclick=>" + results.data[i].name + "</li>"));
-          }
-        }
-      });
-    }
-
-    function addClicked() {
-      $("#dependsOnNewBox").show();
-      $("#dependsOnSelectedBox").hide();
-      $("#dependsOnValidatedBox").hide();
-      $("#boxDefinitionInput").val($("#sampleBoxDefinitionInput").val())
-    }
-
-    function boxSelected(id) {
-      selectedBoxId = id;
-      invokeService("GET", "boxx/" + id, {}, function(results) {
-        renderBoxDefIntoTable(results.data, "selectedBoxDefTable");
-      });
-    }
-
-    function renderBoxDefIntoTable(data, tableId) {
-      $("#" + tableId).replaceWith(renderBoxDef(data).attr("id", tableId));
-    }
-
     function validateClicked() {
-      invokeService("POST", "boxx/validate", $("#boxDefinitionInput").val(), function(results) {
-        renderBoxDefIntoTable(results.data, "validatedBoxDefTable")
-        $("#dependsOnNewBox").hide();
-        $("#dependsOnSelectedBox").hide();
-        $("#dependsOnValidatedBox").show();
+      invokeService("POST", "validate-boxx", $("#boxDefinitionInput").val(), function(results) {
+        $("#boxDefinitionOutput").val(JSON.stringify(results.data, null, 2))
       });
     }
 
     function saveClicked() {
       invokeService("POST", "boxx", $("#boxDefinitionInput").val(), function(results) {
-        refreshBoxList();
-        $("#dependsOnNewBox").hide();
-        $("#dependsOnSelectedBox").hide();
-        $("#dependsOnValidatedBox").hide();
+        $("#boxDefinitionOutput").val("SAVED\n\n" + JSON.stringify(results.data, null, 2))
       });
     }
-
-    function renderBoxDef(boxdef) {
-      var table = $("<table>")
-      function renderRow(label, value) {
-        table.append($("<tr>").append($("<td>").append($("<b>").text(label))).append($("<td>").append($("<span>").text(value))))
-      }
-      renderRow("Title", boxdef.title)
-      renderRow("Description", boxdef.description)
-      renderRow("Size", boxdef.size)
-      renderRow("Amount In", boxdef.amount_in)
-      renderRow("Hit Rate", boxdef.hit_rate)
-      renderRow("Average Return", boxdef.average_return)
-      for (var i = 0, len = boxdef.outcomes.length; i < len; ++i) {
-        var prefix = "Outcome #" + (i + 1) + " ";
-        renderRow(prefix + "Title", boxdef.outcomes[i].title)
-        renderRow(prefix + "Description", boxdef.outcomes[i].description)
-        renderRow(prefix + "Probability", boxdef.outcomes[i].probability)
-        renderRow(prefix + "Amount Out", boxdef.outcomes[i].amount_out)
-        renderRow(prefix + "Hit Rate", boxdef.outcomes[i].hit_rate)
-        renderRow(prefix + "Average Return", boxdef.outcomes[i].average_return)
-      }
-      return table
-    }
-
-    /*********/
 
     $(document).ready(function() {
       $("#apiKeyInput").val("$$$$$$$$.TESTER.$$$$$$$$");
       apiKeyChanged();
     });
   </script>
+  <style>
+    .error {
+      color: red;
+    }
+    svg {
+      width: 70px;
+      height: 70px;
+    }
+    svg:hover {
+      fill: red;
+    }
+  </style>
 {% endblock header %}
 
 {% block content %}
-  <p>
-    Your API key:<br/>
-    <input id="apiKeyInput" type="text" onchange="apiKeyChanged()" style="width: 300px">
-    <button type="button" onclick="apiKeySubmitted()">Enter</button>
-  </p>
+<div>
+  <h2>Box Definition Forge</h2>
+  <p>Paste a JSON box definition into the box on the left. (Sample is provided.)</p>
+  <p>Click the arrow to validate and get performance analysis numbers on the right.</p> 
 
-  <div id="dependsOnApiKey" style="display: none">
-    <p>Your Boxes: &nbsp; <button onclick="addClicked()">+ Add Box</button></p>
-    <div id="listOfBoxes"></div>
-
-    <div id="dependsOnSelectedBox" style="display: none">
-      <table id="selectedBoxDefTable">
-      </table>
-    </div>
-
-    <div id="dependsOnValidatedBox" style="display: none">
-      <table id="validatedBoxDefTable">
-      </table>
-      <p><button onclick="saveClicked()">Save</button></p>
-    </div>
-
-    <div id="dependsOnNewBox" style="display: none">
+  <table><tbody><tr>
+    <td>
       <p>Paste JSON description here:</p>
-      <textarea id="boxDefinitionInput" rows="30" cols="80"></textarea>
-      <p><button onclick="validateClicked()">Validate</button></p>
-    </div>
-  </div>
-
-  <textarea id="sampleBoxDefinitionInput" rows="30" cols="80" style="display: none">
+      <textarea id="boxDefinitionInput" rows="30" cols="40">
     {
-      "title": "Test Box",
-      "description": "This is a test.",
+      "name": "Test Box",
+      "details": "This is a test.",
       "log2size": 18,
       "outcomes": [{
-        "title": "Jackpot",
+        "name": "Jackpot",
         "probability": 1,
         "amount_out": 10000
       },{
-        "title": "3 cherries in a row",
+        "name": "3 cherries in a row",
         "probability": 1,
         "amount_out": 1000
       },{
-        "title": "3 oranges in a row",
+        "name": "3 oranges in a row",
         "probability": 100,
         "amount_out": 500
       },{
-        "title": "3 blueberries in a row",
+        "name": "3 blueberries in a row",
         "probability": 500,
         "amount_out": 200
       },{
-        "title": "3 lemons in a row",
+        "name": "3 lemons in a row",
         "probability": 1000,
         "amount_out": 100
       }]
     }
-  </textarea>
+      </textarea>
+    </td>
+    <td>
+      <div style="width: 70; height: 70;" onclick="validateClicked()">
+       <svg width="24" height="24" viewBox="0 0 24 24">
+           <path d="M4,11V13H16L10.5,18.5L11.92,19.92L19.84,12L11.92,4.08L10.5,5.5L16,11H4Z"></path>
+       </svg>
+      </div>
+    </td>
+    <td>
+      <p>Results:</p>
+      <textarea id="boxDefinitionOutput" rows="30" cols="40">
+      </textarea>
+    </td>
+  </tr></tbody></table>
+  <p>
+    To save your completed box definition, enter your API key below and click Save.  Your
+    box definition will appear in the <a href="/data_admin">data admin.</a>
+  </p>
+  <p>
+    <input id="apiKeyInput" type="text" onchange="apiKeyChanged()" style="width: 300px">
+    <button type="button" onclick="saveClicked()">Save</button>
+  </p>
+</div>
 {% endblock content %}
