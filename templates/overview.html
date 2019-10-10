@@ -1,46 +1,52 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h2>What is a boxx?</h2>
+  <h2>What is a box?</h2>
   <p>
-    A boxx is a predetermined sequence of random outcomes.  By pre-generating and analyzing
-    the sequence, the system can ensure that it conforms to constraints set by the client.
+    A <strong>box</strong> is a finite, predetermined sequence of random outcomes, which
+    we'll call <strong>cards</strong>.  Cards contains a result value and other descriptive 
+    information.  The box contents depend on the <strong>box definition</strong>, which
+    lists the various outcomes and the probabilities of each.
   </p>
   <p>
-    Outcomes in the boxx may be <strong>assigned</strong>.  Assigning an outcome associates
-    the outcome permanently with a token string provided by the client.  (The tokens are
-    opaque to the BigBoxx service.)  Once assigned, an outcome may not be reassigned; it
+    Cards start out <strong>unassigned</strong> and may be <strong>assigned</strong> 
+    through the API, by associating the card permanently with a token string
+    provided by the client.  The tokens are opaque to the BigBoxx service and are 
+    assumed to represent users.  Once assigned, an outcome may not be reassigned; it
     may only be <strong>consumed</strong>.  Each outcome may be consumed only once.
+  </p>
+  <p>
+    A <strong>series</strong> is a group of boxes, each of a different box definition.
+    A series might represent a physical installation, or a group of installations.
   </p>
   <h2>What does this mean to the game developer?</h2>
   <p>
-    To put the above into gaming terms, when the user looks ahead at the next results,
-    the gaming client sends an API call that includes the user's ID token to the BigBoxx
-    system.  The system responds by looking for an outcome assigned to the user.  If
-    there is none, the system assigns the next available unassigned outcome to the user.
-    The system sends a return message that includes a description of the outcome.
+    To put the above into gaming terms, the BigBoxx system supports games of chance with
+    a look-ahead feature.  A game is identified by its box definition and its series.
+    When a user looks ahead at the next results, the gaming client makes a call to the
+    BigBoxx API, including the user token, the box definition ID, and the series token.
+    The system responds by looking for an unconsumed card from the same game for that
+    user.  If there is none, the system assigns the next available unassigned card
+    from that game to the user.  The system sends a return message that includes a
+    description of the outcome, so that it can be displayed to the user.  If the user
+    looks ahead again at the same game, the previous outcome is shown.
   <p>
   </p>
     When the user makes a play, the gaming client sends an API call as in the previous
     case, except with instructions to consume.  The system carries out the same 
-    operation as in the previous case, except that it also consumes the outcome. 
+    operation as in the previous case, except that it also consumes the card. 
     Therefore, the next time the user looks ahead or makes a play, they will be 
-    assigned a different outcome.
+    assigned a different card.
   </p>
-  <h2>How are boxxes created?</h2>
+  <h2>How are boxes created?</h2>
   <p>
-    Boxxes are created on demand by the service, based on <strong>boxx definitions</strong>
-    previously registered through the API.  A boxx definition describes the various
-    outcomes of the boxx, the values and probabilities of each.  Before outcomes can be
-    extracted, the boxx definition must be in service.  Boxx definitions become ready for
-    service some time after they are saved, after the first boxx associated with that boxx
-    definition is generated.  (This is a relatively slow process that should not take place
-    while an end user is waiting for a response.) Once that is complete, the client may begin
-    assigning and consuming outcomes.  As boxxes are depleted, the system generates new ones
-    conforming to the same boxx definition.
+    Boxes are created on demand by the service.  The first time there is a call to 
+    assign/consume a (box definition, series) pair, the system randomly generates a
+    new box conforming to the box definition.  A box containing no unassigned cards
+    is considered depleted.  As boxes are depleted, the system generates new ones.
   </p>
   <p>
-    Once a boxx or a boxx definition is created, it cannot be modified.  New boxx
+    Once a box or a box definition is created, it cannot be modified.  New box
     definitions may be created, however, up to the limit guaranteed by the subscriber's
     service plan.
   </p>

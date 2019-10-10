@@ -18,30 +18,19 @@
     application/json</code> header in all POST and PUT requests.
   </p>
   <h2>API Reference</h2>
-  <div style="width:100%">
-    <table border>
-      <tr>
-        <th>Method</th>
-        <th>Path</th>
-        <th>Description</th>
-        <th>Sample JSON</th>
-      </tr>
-      <tr>
-        <td>GET</td>
-        <td>boxx</td>
-        <td>List IDs and titles of all boxx definitions.</td>
-        <td>Response: <pre>
+
+<h3>GET /boxx</h3>
+<p>List IDs and titles of all boxx definitions.</p>
+<p>Response: <pre>
 { "data": [
   { "id": 1, "title": "First Boxx" },
   { "id": 2, "title": "Second Boxx" }
 ] }</pre>
-        </td>
-      </tr>
-      <tr>
-        <td>GET</td>
-        <td>boxx/:id:</td>
-        <td>Get details of a particular boxx definition, including whether it is in service.</td>
-        <td>Response: <pre>
+</p>
+
+<h3>GET /boxx/:id:</h3>
+<p>Get details of a particular boxx definition.</p>
+<p>Response: <pre>
 { "data": {
   "id": 2,
   "title":"Test Box",
@@ -57,16 +46,13 @@
     "amount_out":10000,
     "hit_rate":3.814697265625e-06,
     "average_return":0.03814697265625
-  }],
-  "in_service": true
+  }]
 }</pre>
-        </td>
-      </tr>
-      <tr>
-        <td>POST</td>
-        <td>boxx</td>
-        <td>Validate and create a boxx definition.</td>
-        <td>Request: <pre>
+</p>
+
+<h3>POST /boxx</h3>
+<p>Validate and create a boxx definition.</p>
+<p>Request: <pre>
 {
   "title": "Test Box",
   "description": "This is a test.",
@@ -89,37 +75,45 @@
     "amount_out": 100
   }]
 }
-        </td>
-      </tr>
-      <tr>
-        <td>POST</td>
-        <td>boxx/validate</td>
-        <td>Just validate a boxx definition. (As previous,
-          but does not save the boxx defintion.)</td>
-        <td>(Request and response as previous)
-        </td>
-      </tr>
-      <tr>
-        <td>POST</td>
-        <td>boxx/:id:/outcome</td>
-        <td>Find an unconsumed outcome of the given boxx definition,
-          assigned to the given token.
-          If none is found, find an unassigned token and assign it to
-          the given token.  If the consume flag is set, consume the
-          assigned outcome.  Return the assigned outcome.</td>
-        <td>Request: <pre>
-{ "token": "abcDEF123",
-  "consume": false }</pre>
-        Response: <pre>
-{ "data": {
-  "outcome": {
-    "title": "3 Stars",
-    "amount_out": 500
+</pre>
+</p>
+<p>Response: as for GET /boxx/:id:</p>
+
+<h3>POST /validate-boxx</h3>
+<p>Just validate a boxx definition. (As POST /boxx, but does not save the boxx definition.)</p>
+<p>(Request and response as for POST /boxx, except that the response structure does not include an id field.)</p>
+
+<h3>POST /boxx/:id:/peek</h3>
+<p>
+Find or create an unconsumed card of the given boxx definition
+and the series identified in the POST body, assigned to the user identified in the POST body.
+Return the card details.</p>
+<p>Request: <pre>
+{ "user": "u12345",
+  "series": "s67890",
+}</pre>
+</p>
+<p>(user is required; series is not.)</p>
+<p>Response: <pre>
+{
+  "data": {
+    "outcome": {
+      "title": "3 Stars",
+      "amount_out": 500
+    },
+    "user_token": "u12345",
+    "consumed": false
   }
-} } </pre>
-        </td>
-      </tr>
-    </table>
+}</pre>
+</p>
+
+<h3>POST /boxx/:id:/take</h3>
+<p>
+Find or create an unconsumed card of the given boxx definition
+and the series identified in the POST body, assigned to the user identified in the POST body.
+Mark the card as consumed.  Return the card details.</p>
+<p>Request and response: as for POST /box/:id:/peek </p>
+
   <h2>Error Responses</h2>
   <p>
     Valid responses have HTTP status in [200..205].  All other statuses indicate errors.
