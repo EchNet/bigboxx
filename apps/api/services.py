@@ -1,7 +1,10 @@
+import logging
 import random
 
 from api.models import (Box, BoxDefinition, BoxProspectus, Card)
 from api.operations import BoxDefinitionOperations, CardClaimValidator
+
+logger = logging.getLogger(__name__)
 
 
 class ServiceManager(object):
@@ -53,6 +56,7 @@ class ClaimCardOperation:
     card = self._get_or_create_card()
     if consume:
       card.consumed = True
+      card.save()
     return card
 
   def _get_or_create_card(self):
@@ -116,7 +120,7 @@ class ClaimCardOperation:
   # TODO: locking, locking, locking
   def _generate_next_card(self, box):
     outcome_index = OutcomeIndex(self.box_definition)
-    random.seed(box.random_state)
+    #random.seed(box.random_state)   # TODO
     x = random.getrandbits(self.box_definition.log2size)
     outcome = outcome_index.rand_to_outcome(x)
     card = Card(
@@ -187,7 +191,7 @@ class BoxStats:
 
   @property
   def actual_hit_rate(self):
-    return self._total_amount_out / (self._box_definition.size * self._box_definition.amount_in)
+    return self._hit_count / self._box_definition.size
 
   @property
   def max_amount_out(self):
