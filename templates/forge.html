@@ -2,52 +2,17 @@
 
 {% block header %}
   <script type="text/javascript">
-    function startServiceWait() {
-      $("#boxDefinitionOutput").val("")
-      $("#boxDefinitionOutput").removeClass("error")
-    }
-
-    function endServiceWait() {
-    }
-
-    function showServiceError(error) {
-      if (error.responseText) {
-        console.log(error.responseText);
-        $("#boxDefinitionOutput").val(error.responseText)
-        $("#boxDefinitionOutput").addClass("error")
-      }
-    }
-
-    function invokeService(method, path, data, onSuccess) {
-      startServiceWait();
-      $.ajax({
-        type: method,
-        url: "/api/1.0/" + path,
-        data: data,
-        contentType: "application/json",
-        headers: { "x-api-key": $("#apiKeyInput").val() }
-      })
-      .done(onSuccess)
-      .fail(showServiceError)
-      .always(endServiceWait);
-    }
-
     function validateClicked() {
-      invokeService("POST", "validate-boxx", $("#boxDefinitionInput").val(), function(results) {
+      Service.invoke("POST", "validate-boxx", $("#boxDefinitionInput").val(), function(results) {
         $("#boxDefinitionOutput").val(JSON.stringify(results.data, null, 2))
       });
     }
 
     function saveClicked() {
-      invokeService("POST", "boxx", $("#boxDefinitionInput").val(), function(results) {
+      Service.invoke("POST", "boxx", $("#boxDefinitionInput").val(), function(results) {
         $("#boxDefinitionOutput").val("SAVED\n\n" + JSON.stringify(results.data, null, 2))
       });
     }
-
-    $(document).ready(function() {
-      $("#apiKeyInput").val("$$$$$$$$.TESTER.$$$$$$$$");
-      apiKeyChanged();
-    });
   </script>
   <style>
     .error {
@@ -114,12 +79,13 @@
       </textarea>
     </td>
   </tr></tbody></table>
+  <p class="serviceErrorContainer serviceErrorText error"></p>
   <p>
     To save your completed box definition, enter your API key below and click Save.  Your
     box definition will appear in the <a href="/box_admin">box admin.</a>
   </p>
   <p>
-    <input id="apiKeyInput" type="text" onchange="apiKeyChanged()" style="width: 300px">
+    <span class="apiKeyWidget"></span>
     <button type="button" onclick="saveClicked()">Save</button>
   </p>
 </div>

@@ -1,110 +1,126 @@
+(function(g, document, $) {
 
-  <script type="text/javascript" src="static>
-    function startServiceWait() {
-    }
+  /******* Services *******/
 
-    function endServiceWait() {
-    }
+  var errorTextReplacements = [
+    [ "Authentication credentials were not provided", "Invalid API key." ]
+  ]
 
-    function showServiceError(error) {
-      if (error.responseText) {
-        console.log(error.responseText);
+  function startServiceWait() {
+    $("body").addClass("wait")
+    $(".serviceErrorContainer").hide();
+  }
+
+  function endServiceWait() {
+    $("body").removeClass("wait")
+  }
+
+  function handleServiceError(jqXHR, textStatus, errorThrown) {
+    var errorText = jqXHR.responseText || "Error!";
+    for (var i = 0, len = errorTextReplacements.length; i < len; ++i) {
+      if (errorText.indexOf(errorTextReplacements[0][0]) >= 0) {
+        errorText = errorTextReplacements[0][1];
       }
     }
+    console.log(errorText);
+    $(".serviceErrorText").text(errorText);
+    $(".serviceErrorContainer").show();
+  }
 
-    function invokeService(method, path, data, onSuccess) {
-      startServiceWait();
-      $.ajax({
-        type: method,
-        url: "/api/1.0/" + path,
-        data: data,
-        contentType: "application/json",
-        headers: { "x-api-key": $("#apiKeyInput").val() }
-      })
-      .done(onSuccess)
-      .fail(showServiceError)
-      .always(endServiceWait);
+  function invokeService(method, path, data, onSuccess, onError) {
+    startServiceWait();
+    promise = $.ajax({
+      type: method,
+      url: "/api/1.0/" + path,
+      data: data,
+      contentType: "application/json",
+      headers: { "x-api-key": apiKeyCookie.get() }
+    })
+    .done(onSuccess)
+    .always(endServiceWait);
+    if (onError) {
+      promise = promise.fail(onError);
     }
+    promise.fail(handleServiceError);
+  }
 
-    /*********/
+  function invokeJsonService(method, path, data, onSuccess, onError) {
+    invokeService(method, path, JSON.stringify(data), onSuccess, onError);
+  }
 
-    function refreshBoxList() {
-      invokeService("GET", "boxx/", {}, function(results) {
-        $("#dependsOnApiKey").show()
-        $("#listOfBoxes").empty();
-        if (!results.data || !!results.data.length) {
-          $("#listOfBoxes").append($("<span style='color: orange'>None</span>"));
-        }
-        else {
-          for (var i = 0, len = results.data.length; i < len; ++i) {
-            $("#listOfBoxes").append($("<li onclick=>" + results.data[i].name + "</li>"));
-          }
-        }
-      });
+  function replaceErrorText(regex, replacementText) {
+    errorTextReplacements.append([ regex, replacementText ])
+  }
+
+  g.Service = {
+    invoke: invokeService,
+    invokeJson: invokeJsonService,
+    replaceErrorText: replaceErrorText,
+  };
+
+  /******* Cookies *******/
+
+  function Cookie(name) {
+    this.name = name;
+  }
+
+  Cookie.prototype = {
+    get: function() {
+      var name = this.name;
+      var value = "; " + document.cookie;
+      var parts = value.split("; " + name + "=");
+      if (parts.length == 2) return parts.pop().split(";").shift();
+    },
+    set: function(value) {
+      var name = this.name;
+      document.cookie = name + "=" + value + "; Path=/; Expires=Thu, 01 Jan 2100 00:00:01 GMT;";
+    },
+    clear: function() {
+      var name = this.name;
+      document.cookie = name + "=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
     }
+  }
 
-    function addClicked() {
-      $("#dependsOnNewBox").show();
-      $("#dependsOnSelectedBox").hide();
-      $("#dependsOnValidatedBox").hide();
-      $("#boxDefinitionInput").val($("#sampleBoxDefinitionInput").val())
+  /******* API key widget *******/
+
+  var apiKeyCookie = new Cookie("bigboxx-api-key");
+
+  function refreshApiKeyWidget() {
+    if (apiKeyCookie.get()) {
+      $(".apiKeyPrompt").hide();
+      $(".apiKeyWidget")
+        .empty()
+        .append($("<span class='infoLabel'>").text("Using API key: "))
+        .append($("<span class='infoValue'>").text(apiKeyCookie.get()))
+        .append($("<span>").text(" "))
+        .append($("<button>").text("Clear").click(clearApiKey));
     }
-
-    function boxSelected(id) {
-      selectedBoxId = id;
-      invokeService("GET", "boxx/" + id, {}, function(results) {
-        renderBoxDefIntoTable(results.data, "selectedBoxDefTable");
-      });
+    else {
+      $(".apiKeyPrompt").hide();
+      $(".apiKeyWidget")
+        .empty()
+        .append($("<input class='infoInput'; placeholder='API key'>"))
+        .append($("<button>").text("Enter").click(enterApiKey));
     }
+  }
 
-    function renderBoxDefIntoTable(data, tableId) {
-      $("#" + tableId).replaceWith(renderBoxDef(data).attr("id", tableId));
-    }
-
-    function validateClicked() {
-      invokeService("POST", "boxx/validate", $("#boxDefinitionInput").val(), function(results) {
-        renderBoxDefIntoTable(results.data, "validatedBoxDefTable")
-        $("#dependsOnNewBox").hide();
-        $("#dependsOnSelectedBox").hide();
-        $("#dependsOnValidatedBox").show();
-      });
-    }
-
-    function saveClicked() {
-      invokeService("POST", "boxx", $("#boxDefinitionInput").val(), function(results) {
-        refreshBoxList();
-        $("#dependsOnNewBox").hide();
-        $("#dependsOnSelectedBox").hide();
-        $("#dependsOnValidatedBox").hide();
-      });
-    }
-
-    function renderBoxDef(boxdef) {
-      var table = $("<table>")
-      function renderRow(label, value) {
-        table.append($("<tr>").append($("<td>").append($("<b>").text(label))).append($("<td>").append($("<span>").text(value))))
-      }
-      renderRow("Title", boxdef.title)
-      renderRow("Description", boxdef.description)
-      renderRow("Size", boxdef.size)
-      renderRow("Amount In", boxdef.amount_in)
-      renderRow("Hit Rate", boxdef.hit_rate)
-      renderRow("Average Return", boxdef.average_return)
-      for (var i = 0, len = boxdef.outcomes.length; i < len; ++i) {
-        var prefix = "Outcome #" + (i + 1) + " ";
-        renderRow(prefix + "Title", boxdef.outcomes[i].title)
-        renderRow(prefix + "Description", boxdef.outcomes[i].description)
-        renderRow(prefix + "Probability", boxdef.outcomes[i].probability)
-        renderRow(prefix + "Amount Out", boxdef.outcomes[i].amount_out)
-        renderRow(prefix + "Hit Rate", boxdef.outcomes[i].hit_rate)
-        renderRow(prefix + "Average Return", boxdef.outcomes[i].average_return)
-      }
-      return table
-    }
-
-    /*********/
-
-    $(document).ready(function() {
-      $("#apiKeyInput").val("$$$$$$$$.TESTER.$$$$$$$$");
-      apiKeyChanged();
+  function enterApiKey() {
+    apiKeyCookie.set($(this).parent().find("input").val());
+    Service.invoke("GET", "boxx", {}, function() {
+      refreshApiKeyWidget()
+    }, function() {
+      apiKeyCookie.clear();
+      refreshApiKeyWidget()
     });
+  }
+
+  function clearApiKey() {
+    apiKeyCookie.clear()
+    refreshApiKeyWidget()
+  }
+
+  $(document).ready(refreshApiKeyWidget)
+
+  g.apiKeyCookie = apiKeyCookie;
+
+})(window, document, jQuery);
