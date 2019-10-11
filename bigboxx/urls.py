@@ -14,7 +14,7 @@ urlpatterns = [
     path("overview", TemplateView.as_view(template_name="overview.html"), name="overview"),
     path("docs", TemplateView.as_view(template_name="docs.html"), name="docs"),
     path("forge", TemplateView.as_view(template_name="forge.html"), name="forge"),
-    path("data_admin", TemplateView.as_view(template_name="data_admin.html"), name="data_admin"),
+    path("box_admin", TemplateView.as_view(template_name="box_admin.html"), name="box_admin"),
     path("api/1.0/", include("api.urls")),
     path("admin/", admin.site.urls),
 ]

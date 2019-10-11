@@ -121,7 +121,7 @@ class CardClaimValidator(ItemValidator):
     self._expect(USER_TOKEN_FIELD_NAME).to_be_string().length_in_range(1, MAX_TOKEN_LEN).keep()
 
   def validate_series_token(self):
-    self._allow(SERIES_TOKEN_FIELD_NAME).to_be_string().length_in_range(1, MAX_TOKEN_LEN).keep()
+    self._allow(SERIES_TOKEN_FIELD_NAME).to_be_string().length_in_range(0, MAX_TOKEN_LEN).keep()
 
   def _run_validation(self):
     self.validate_user_token()
