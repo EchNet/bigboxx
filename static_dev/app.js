@@ -15,8 +15,37 @@
     $("body").removeClass("wait")
   }
 
+  function printHash(hash) {
+  }
+
+  function cleanErrorText(errorText) {
+    var obj;
+    try {
+      obj = JSON.parse(errorText);
+    }
+    catch (e) {
+      return errorText;
+    }
+    if (obj.message) {
+      errorText = obj.message;
+    }
+    if (obj.errors) {
+      var parts = [];
+      for (var i = 0, len = obj.errors.length; i < len; ++i) {
+        var errhash = obj.errors[i];
+        if (errhash) {
+          for (var key in errhash) {
+            parts.push(key + ": " + errhash[key]);
+          }
+        }
+      }
+      errorText += " " + parts.join(", ") + ".";
+    }
+    return errorText;
+  }
+
   function handleServiceError(jqXHR, textStatus, errorThrown) {
-    var errorText = jqXHR.responseText || "Error!";
+    var errorText = cleanErrorText(jqXHR.responseText);
     for (var i = 0, len = errorTextReplacements.length; i < len; ++i) {
       if (errorText.indexOf(errorTextReplacements[0][0]) >= 0) {
         errorText = errorTextReplacements[0][1];
@@ -37,26 +66,16 @@
       headers: { "x-api-key": apiKeyCookie.get() }
     })
     .done(onSuccess)
-    .always(endServiceWait);
+    .always(endServiceWait)
+    .fail(handleServiceError);
     if (onError) {
-      promise = promise.fail(onError);
+      promise.fail(onError);
     }
-    promise.fail(handleServiceError);
   }
 
   function invokeJsonService(method, path, data, onSuccess, onError) {
     invokeService(method, path, JSON.stringify(data), onSuccess, onError);
   }
-
-  function replaceErrorText(regex, replacementText) {
-    errorTextReplacements.append([ regex, replacementText ])
-  }
-
-  g.Service = {
-    invoke: invokeService,
-    invokeJson: invokeJsonService,
-    replaceErrorText: replaceErrorText,
-  };
 
   /******* Cookies *******/
 
@@ -84,9 +103,11 @@
   /******* API key widget *******/
 
   var apiKeyCookie = new Cookie("bigboxx-api-key");
+  var apiKeyListeners = [];
 
-  function refreshApiKeyWidget() {
-    if (apiKeyCookie.get()) {
+  function refreshApiKey() {
+    var apiKey = apiKeyCookie.get();
+    if (apiKey) {
       $(".apiKeyPrompt").hide();
       $(".apiKeyWidget")
         .empty()
@@ -96,31 +117,38 @@
         .append($("<button>").text("Clear").click(clearApiKey));
     }
     else {
-      $(".apiKeyPrompt").hide();
+      $(".apiKeyPrompt").show();
       $(".apiKeyWidget")
         .empty()
         .append($("<input class='infoInput'; placeholder='API key'>"))
         .append($("<button>").text("Enter").click(enterApiKey));
     }
+    for (var i = 0, len = apiKeyListeners.length; i < len; ++i) {
+      apiKeyListeners[i]({ apiKey: apiKey });
+    }
   }
 
   function enterApiKey() {
-    apiKeyCookie.set($(this).parent().find("input").val());
-    Service.invoke("GET", "boxx", {}, function() {
-      refreshApiKeyWidget()
-    }, function() {
-      apiKeyCookie.clear();
-      refreshApiKeyWidget()
-    });
+    var newApiKey = $(this).parent().find("input").val();
+    apiKeyCookie.set(newApiKey);
+    Service.invoke("GET", "boxx", {}, refreshApiKey, clearApiKey);
   }
 
   function clearApiKey() {
     apiKeyCookie.clear()
-    refreshApiKeyWidget()
+    refreshApiKey();
   }
 
-  $(document).ready(refreshApiKeyWidget)
+  $(document).ready(refreshApiKey);
 
-  g.apiKeyCookie = apiKeyCookie;
+  function addApiKeyListener(listener) {
+    apiKeyListeners.push(listener);
+  }
+
+  g.Service = {
+    invoke: invokeService,
+    invokeJson: invokeJsonService,
+    addApiKeyListener: addApiKeyListener
+  };
 
 })(window, document, jQuery);

@@ -2,71 +2,33 @@
 
 {% block header %}
   <script type="text/javascript">
-    var selectedBoxDefinitionId = "invalid";
-    var useActionOutput = false;
+    var selectedBoxDefinitionId = 0;
 
-    function startServiceWait() {
-      $("#boxDefinitionOutput").removeClass("error")
-      $("#actionOutput").removeClass("error")
-    }
-
-    function endServiceWait() {
-    }
-
-    function showServiceError(error) {
-      if (error.responseText) {
-        console.log(error.responseText);
-        if (useActionOutput) {
-          $("#actionOutput").val(error.responseText);
-          $("#actionOutput").addClass("error");
-        }
-        else {
-          $("#boxDefinitionOutput").val(error.responseText)
-          $("#boxDefinitionOutput").addClass("error");
-        }
-      }
-    }
-
-    function invokeService(method, path, data, onSuccess) {
-      startServiceWait();
-      $.ajax({
-        type: method,
-        url: "/api/1.0/" + path,
-        data: data,
-        contentType: "application/json",
-        headers: { "x-api-key": $("#apiKeyInput").val() }
-      })
-      .done(onSuccess)
-      .fail(showServiceError)
-      .always(endServiceWait);
-    }
-
-    function enterApiKeyClicked() {
+    function loadBoxDefinitions() {
       $("#boxDefinitionList").empty();
-      $("#boxDefinitionOutput").val("")
-      $("#action").val("")
-      useActionOutput = false;
-      invokeService("GET", "boxx", {}, function(results) {
+      Service.invoke("GET", "boxx", {}, function(results) {
         for (var i = 0, len=results.data.length; i < len; ++i) {
-          var ele = results.data[i];
-          $("#boxDefinitionList").append($("<a href='#'>").click(function(e) {
-            e.preventDefault();
-            boxListingClicked(ele.id);
-          }).append($("<li>").text(ele.name)));
-        } });
+          $("#boxDefinitionList").append(renderBoxDefinition(results.data[i]));
+        }
+      });
+    }
+
+    function renderBoxDefinition(data) {
+      return $("<a href='#'>").click(function(e) {
+        e.preventDefault();
+        boxListingClicked(data.id);
+      }).append($("<li>").text(data.name));
     }
 
     function boxListingClicked(id) {
-      useActionOutput = false;
-      invokeService("GET", "boxx/" + id, {}, function(results) {
+      Service.invoke("GET", "boxx/" + id, {}, function(results) {
         selectedBoxDefinitionId = id;
         $("#boxDefinitionOutput").val(JSON.stringify(results.data, null, 2))
       });
     }
 
     function peekClicked(take) {
-      useActionOutput = true;
-      invokeService("POST",
+      Service.invoke("POST",
         "boxx/" + selectedBoxDefinitionId + (take ? "/take" : "/peek"),
         JSON.stringify({
           user_token: $("#userTokenInput").val(),
@@ -78,8 +40,21 @@
       );
     }
 
-    $(document).ready(function() {
-      $("#apiKeyInput").val("$$$$$$$$.TESTER.$$$$$$$$");
+    function clearAll() {
+      $("#boxDefinitionList").empty();
+      $("#boxDefinitionOutput").val("")
+      $("#actionOutput").val("")
+    }
+
+    Service.addApiKeyListener(function(e) {
+      if (e.apiKey) {
+        clearAll();
+        loadBoxDefinitions();
+        $(".mainStuff").show();
+      }
+      else {
+        $(".mainStuff").hide();
+      }
     });
   </script>
   <style>
@@ -87,56 +62,42 @@
       display: inline-block;
       margin: 0px 10px;
     }
-    .gogogo {
-      color: green;
-    }
-    .error {
-      color: red;
-    }
-    svg {
-      width: 70px;
-      height: 70px;
-    }
-    svg:hover {
-      fill: red;
-    }
   </style>
 {% endblock header %}
 
 {% block content %}
 <div>
   <h2>Box Admin</h2>
-  <p>
-    Start by entering your API key:
-    <input id="apiKeyInput" type="text" style="width: 300px">
-    <button type="button" onclick="enterApiKeyClicked()">Enter</button>
-  </p>
-  <p>Select a box from the list below. (If empty, go to the <a href="forge">forge</a> to create one.)</p>
-  <h3>Box definitions</h3>
-  <p id="boxDefinitionList"></p>
-  <table><tbody>
-  <tr>
-    <td><h4>Box Definition Details</h4></td>
-    <td><h4>Actions</h4></td>
-    <td><h4>Results</h4></td>
-  </tr>
-  <tr>
-    <td valign="top">
-      <textarea id="boxDefinitionOutput" readonly=readonly rows="30" cols="40">
-      </textarea>
-    </td>
-    <td valign="top">
-      Specify a user token (required):<br/>
-      <input id="userTokenInput" type="text" style="width: 200px"><br/>
-      Specify a series token (optional):<br/>
-      <input id="seriesTokenInput" type="text" style="width: 200px"><br/>
-      <button type="button" onclick="peekClicked(false)">Peek</button>
-      <button type="button" onclick="peekClicked(true)">Take</button>
-    </td>
-    <td valign="top">
-      <textarea id="actionOutput" readonly=readonly rows="30" cols="40">
-      </textarea>
-    </td>
-  </tr></tbody></table>
+  <p><span class="apiKeyWidget"></span><p>
+  <p class="serviceErrorContainer serviceErrorText error"></p>
+  <div class="mainStuff" style="display: none;">
+    <p>Select a box from the list below. (If empty, go to the <a href="forge">forge</a> to create one.)</p>
+    <h3>Box definitions</h3>
+    <p id="boxDefinitionList"></p>
+    <table><tbody>
+    <tr>
+      <td><h4>Box Definition Details</h4></td>
+      <td><h4>Actions</h4></td>
+      <td><h4>Results</h4></td>
+    </tr>
+    <tr>
+      <td valign="top">
+        <textarea id="boxDefinitionOutput" readonly=readonly rows="30" cols="40">
+        </textarea>
+      </td>
+      <td valign="top">
+        Specify a user token (required):<br/>
+        <input id="userTokenInput" type="text" style="width: 200px"><br/>
+        Specify a series token (optional):<br/>
+        <input id="seriesTokenInput" type="text" style="width: 200px"><br/>
+        <button type="button" onclick="peekClicked(false)">Peek</button>
+        <button type="button" onclick="peekClicked(true)">Take</button>
+      </td>
+      <td valign="top">
+        <textarea id="actionOutput" readonly=readonly rows="30" cols="40">
+        </textarea>
+      </td>
+    </tr></tbody></table>
+  </div>
 </div>
 {% endblock content %}
