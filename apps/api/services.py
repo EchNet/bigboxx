@@ -1,8 +1,8 @@
 import logging
-import random
 
 from api.models import (Box, BoxDefinition, BoxProspectus, Card)
 from api.operations import BoxDefinitionOperations, CardClaimValidator
+from utils.random import KISSGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -89,27 +89,30 @@ class ClaimCardOperation:
     ).first()
 
   def _create_new_box(self):
-    box_prospectus = self._create_new_box_prospectus()
-    box = Box(
-        subscriber=self.subscriber,
-        series_token=self.series_token,
-        box_prospectus=box_prospectus,
-        random_state=box_prospectus.initial_random_state)
+    # TODO: precreate box prospectus
+    box = self._box_from_box_prospectus(self._create_new_box_prospectus())
     box.save()
     return box
 
+  def _box_from_box_prospectus(self, box_prospectus):
+    box = Box(
+        subscriber=self.subscriber, series_token=self.series_token, box_prospectus=box_prospectus)
+    box.random_state = KISSGenerator(box_prospectus.initial_random_seed).getstate()
+    return box
+
   def _create_new_box_prospectus(self):
-    seed = int(random.getrandbits(48))
-    random.seed(seed)
+    rng = KISSGenerator()
+    seed = rng.getrandbits(63)
+    rng.seed(seed)
     box_stats = BoxStats(self.box_definition)
     outcome_index = OutcomeIndex(self.box_definition)
     for i in range(0, self.box_definition.size):
-      x = random.getrandbits(self.box_definition.log2size)
+      x = rng.getrandbits(self.box_definition.log2size)
       outcome = outcome_index.rand_to_outcome(x)
       box_stats.accum(outcome)
     box_prospectus = BoxProspectus(
         box_definition=self.box_definition,
-        initial_random_state=seed,
+        initial_random_seed=seed,
         actual_hit_rate=box_stats.actual_hit_rate,
         actual_return=box_stats.actual_return,
         max_amount_out=box_stats.max_amount_out,
@@ -120,8 +123,8 @@ class ClaimCardOperation:
   # TODO: locking, locking, locking
   def _generate_next_card(self, box):
     outcome_index = OutcomeIndex(self.box_definition)
-    #random.seed(box.random_state)   # TODO
-    x = random.getrandbits(self.box_definition.log2size)
+    rng = KISSGenerator(box.random_state)
+    x = rng.getrandbits(self.box_definition.log2size)
     outcome = outcome_index.rand_to_outcome(x)
     card = Card(
         box=box,
@@ -131,8 +134,7 @@ class ClaimCardOperation:
     )
     card.save()
 
-    # TODO: really save state
-    box.random_state = random.getstate()[0]
+    box.random_state = rng.getstate()
     box.card_count += 1
     if box.card_count >= self.box_definition.size:
       box.is_closed = True

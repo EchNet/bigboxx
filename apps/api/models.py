@@ -193,11 +193,12 @@ class BoxProspectus(models.Model):
       related_name="box_prospectus",
   )
 
-  # The initial randomizer state.
-  initial_random_state = models.BigIntegerField(
+  # The initial random seed.
+  initial_random_seed = models.BigIntegerField(
       blank=False,
       null=False,
-      verbose_name=_("initial state"),
+      default=0,
+      verbose_name=_("initial random seed"),
   )
 
   # The actual hit rate.  (Fraction of outcomes with positive amounts)
@@ -220,6 +221,14 @@ class BoxProspectus(models.Model):
       null=False,
       verbose_name=_("max amount out"),
   )
+
+
+def uint32(x):
+  return ((1 << 31) - x) if x < 0 else x
+
+
+def int32(x):
+  return (x - (1 << 32)) if x >= (1 << 31) else x
 
 
 class Box(models.Model):
@@ -252,12 +261,48 @@ class Box(models.Model):
       related_name="boxes",
   )
 
-  # The current randomizer state.
-  random_state = models.BigIntegerField(
-      blank=False,
+  # The current randomizer state, consisting of 4 32-bit integers.
+  random_state_0 = models.IntegerField(
+      blank=True,
       null=False,
-      verbose_name=_("current state"),
+      default=0,
+      verbose_name=_("rng state 0"),
   )
+  random_state_1 = models.IntegerField(
+      blank=True,
+      null=False,
+      default=0,
+      verbose_name=_("rng state 1"),
+  )
+  random_state_2 = models.IntegerField(
+      blank=True,
+      null=False,
+      default=0,
+      verbose_name=_("rng state 2"),
+  )
+  random_state_3 = models.IntegerField(
+      blank=True,
+      null=False,
+      default=0,
+      verbose_name=_("rng state 3"),
+  )
+
+  @property
+  def random_state(self):
+    """ Use this, not the individual fields, to get the random state. """
+    return (
+        uint32(self.random_state_0),
+        uint32(self.random_state_1),
+        uint32(self.random_state_2),
+        uint32(self.random_state_3),
+    )
+
+  @random_state.setter
+  def random_state(self, state):
+    self.random_state_0 = int32(state[0])
+    self.random_state_1 = int32(state[1])
+    self.random_state_2 = int32(state[2])
+    self.random_state_3 = int32(state[3])
 
   # The current card count.
   card_count = models.PositiveIntegerField(
