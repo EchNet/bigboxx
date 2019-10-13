@@ -29,6 +29,9 @@
     if (obj.message) {
       errorText = obj.message;
     }
+    else if (obj.detail) {
+      errorText = obj.detail;
+    }
     if (obj.errors) {
       var parts = [];
       for (var i = 0, len = obj.errors.length; i < len; ++i) {
