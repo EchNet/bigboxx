@@ -19,39 +19,42 @@
   </p>
   <h2>API Reference</h2>
 
-<h3>GET /boxx</h3>
-<p>List IDs and titles of all boxx definitions.</p>
+<p>The "peek" and "take" endpoints are of interest to game developers.  The rest are useful
+primarily to power the <a href="/forge">forge</a> and <a href="box_admin">box admin</a> UIs.</p>
+
+<h3>GET boxx</h3>
+<p>List IDs and titles of all box definitions.</p>
 <p>Response: <pre>
 { "data": [
-  { "id": 1, "title": "First Boxx" },
-  { "id": 2, "title": "Second Boxx" }
+  { "id": 1, "name": "First Boxx" },
+  { "id": 2, "name": "Second Boxx" }
 ] }</pre>
 </p>
 
-<h3>GET /boxx/:id:</h3>
-<p>Get details of a particular boxx definition.</p>
+<h3>GET boxx/:id:</h3>
+<p>Get details of a particular box definition.</p>
 <p>Response: <pre>
 { "data": {
   "id": 2,
-  "title":"Test Box",
-  "description":"This is a test.","
-  log2size":18,
+  "name":"Test Box",
+  "details":"This is a test.","
   "size":262144,
   "amount_in":1,
   "hit_rate": 0.00611114501953125,
   "average_return":0.995635986328125,
   "outcomes":[{
-    "title":"Jackpot",
+    "name":"Jackpot",
+    "details":"3 barracuda and a sperm whale",
     "probability":1,
     "amount_out":10000,
-    "hit_rate":3.814697265625e-06,
+    "hit_rate": 0.000003814697265625,
     "average_return":0.03814697265625
   }]
 }</pre>
 </p>
 
-<h3>POST /boxx</h3>
-<p>Validate and create a boxx definition.</p>
+<h3>POST boxx</h3>
+<p>Validate and create a box definition.</p>
 <p>Request: <pre>
 {
   "title": "Test Box",
@@ -77,15 +80,20 @@
 }
 </pre>
 </p>
-<p>Response: as for GET /boxx/:id:</p>
+<p>Response: if definition is valid, response is same as for GET /boxx/:id:</p>
 
-<h3>POST /validate-boxx</h3>
-<p>Just validate a boxx definition. (As POST /boxx, but does not save the boxx definition.)</p>
+<h3>POST validate-boxx</h3>
+<p>Just validate a box definition. (As POST /boxx, but does not save the box definition.)</p>
 <p>(Request and response as for POST /boxx, except that the response structure does not include an id field.)</p>
 
-<h3>POST /boxx/:id:/peek</h3>
+<h3>
+<svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 1235 1175" width="24.7" height="23.5">
+<path fill="#de0000" d="M0,449h1235l-999,726 382-1175 382,1175z"/>
+</svg>
+POST boxx/:id:/peek
+</h3>
 <p>
-Find or create an unconsumed card of the given boxx definition
+Find or create an unconsumed card of the given box definition
 and the series identified in the POST body, assigned to the user identified in the POST body.
 Return the card details.</p>
 <p>Request: <pre>
@@ -97,8 +105,10 @@ Return the card details.</p>
 <p>Response: <pre>
 {
   "data": {
+    "box_id": 6,
     "outcome": {
-      "title": "3 Stars",
+      "name": "3 Stars",
+      "probability": 31,
       "amount_out": 500
     },
     "user_token": "u12345",
@@ -107,17 +117,21 @@ Return the card details.</p>
 }</pre>
 </p>
 
-<h3>POST /boxx/:id:/take</h3>
+<h3>
+<svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 1235 1175" width="24.7" height="23.5">
+<path fill="#de0000" d="M0,449h1235l-999,726 382-1175 382,1175z"/>
+</svg>
+POST boxx/:id:/take</h3>
 <p>
-Find or create an unconsumed card of the given boxx definition
+Find or create an unconsumed card of the given box definition
 and the series identified in the POST body, assigned to the user identified in the POST body.
 Mark the card as consumed.  Return the card details.</p>
-<p>Request and response: as for POST /box/:id:/peek </p>
+<p>Request and response: as for POST /box/:id:/peek, but response always has consumed=true.</p>
 
   <h2>Error Responses</h2>
   <p>
     Valid responses have HTTP status in [200..205].  All other statuses indicate errors.
-    Information about the error may be found in the "details" field of the JSON response
-    body.
+    If the response content is JSON, information about the error may be found in the
+    "details", "message" and "errors" fields of the JSON response body.
   </div>
 {% endblock content %}
