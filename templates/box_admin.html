@@ -4,8 +4,23 @@
   <script type="text/javascript">
     var selectedBoxDefinitionId = 0;
 
+    function boxDefinitionChange() {
+      var value = $("#boxDefinitionList").val();
+      if (value) {
+        boxListingClicked(value);
+      }
+    }
+
+    function boxDefTabClicked(n) {
+      $("#boxDefinitionTab" + n).addClass("tabSelected").removeClass("tabUnselected");
+      $("#boxDefinitionTab" + (3 - n)).addClass("tabUnselected").removeClass("tabSelected");
+      $("#boxDefinitionContent" + n).show();
+      $("#boxDefinitionContent" + (3 - n)).hide();
+    }
+
     function loadBoxDefinitions() {
       $("#boxDefinitionList").empty();
+      $("#boxDefinitionList").append($("<option>").text("Select a box"))
       Service.invoke("GET", "boxx", {}, function(results) {
         for (var i = 0, len=results.data.length; i < len; ++i) {
           $("#boxDefinitionList").append(renderBoxDefinition(results.data[i]));
@@ -14,15 +29,19 @@
     }
 
     function renderBoxDefinition(data) {
-      return $("<a href='#'>").click(function(e) {
-        e.preventDefault();
-        boxListingClicked(data.id);
-      }).append($("<li>").text(data.name));
+      return $("<option>").attr("value", data.id).text(data.name);
     }
 
     function boxListingClicked(id) {
       Service.invoke("GET", "boxx/" + id, {}, function(results) {
         selectedBoxDefinitionId = id;
+        $("#boxDefinitionTable tbody")
+          .empty()
+          .append($("<tr><th>Name</th><td>" + results.data.name + "</td></tr>"))
+          .append($("<tr><th>Details</th><td>" + results.data.details + "</td></tr>"))
+          .append($("<tr><th>Average Return</th><td>" + results.data.average_return + "</td></tr>"))
+          .append($("<tr><th>Hit Rate</th><td>" + results.data.hit_rate + "</td></tr>"))
+        ;
         $("#boxDefinitionOutput").val(JSON.stringify(results.data, null, 2))
       });
     }
@@ -58,9 +77,37 @@
     });
   </script>
   <style>
+    #boxDefinitionContent {
+      width: 280px;
+      overflow: none;
+      padding: 10px;
+    }
+    #boxDefinitionTable {
+      font-size: 12px;
+    }
+    #boxDefinitionOutput {
+      border: none;
+    }
+    select {
+      font-size: 18px;
+    }
     li {
       display: inline-block;
       margin: 0px 10px;
+    }
+    .tabSelected {
+      color: black:
+      border-radius: 6px;
+      border-left: solid 1px gray;
+      border-top: solid 1px gray;
+      border-right: solid 1px gray;
+      padding: 3px;
+    }
+    .tabUnselected {
+      cursor: pointer;
+      color: blue;
+      border-bottom: solid 1px gray;
+      padding: 3px;
     }
   </style>
 {% endblock header %}
@@ -72,8 +119,7 @@
   <p class="serviceErrorContainer serviceErrorText error"></p>
   <div class="mainStuff" style="display: none;">
     <p>Select a box from the list below. (If empty, go to the <a href="forge">forge</a> to create one.)</p>
-    <h3>Box definitions</h3>
-    <p id="boxDefinitionList"></p>
+    <select id="boxDefinitionList" onChange="boxDefinitionChange()"></select>
     <table><tbody>
     <tr>
       <td><h4>Box Definition Details</h4></td>
@@ -82,8 +128,24 @@
     </tr>
     <tr>
       <td valign="top">
-        <textarea id="boxDefinitionOutput" readonly=readonly rows="30" cols="40">
-        </textarea>
+        <div>
+          <span id="boxDefinitionTab1" class="tabSelected" onClick="boxDefTabClicked(1)">
+            Summary
+          </span>
+          <span id="boxDefinitionTab2" class="tabUnselected" onClick="boxDefTabClicked(2)">
+            Raw
+          </span>
+        </div>
+        <div id="boxDefinitionContent">
+          <div id="boxDefinitionContent1">
+            <table id="boxDefinitionTable"><tbody>
+            </tbody></table>
+          </div>
+          <div id="boxDefinitionContent2" style="display: none;">
+            <textarea id="boxDefinitionOutput" readonly=readonly cols="40" rows="30">
+            </textarea>
+          </div>
+        </div>
       </td>
       <td valign="top">
         Specify a user token (required):<br/>
